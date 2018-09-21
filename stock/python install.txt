@@ -1,0 +1,97 @@
+git 推送服务 https://blog.csdn.net/ppppfly/article/details/53092642
+
+./configure --with-ssl --prefix=/data/lanjm/test/python3
+
+ 9912  sudo apt-get install libssl-dev   
+ 9913  sudo apt-get install libssl
+ 9914  sudo apt-get update
+ 9915  sudo apt-get install libssl
+ 9916  sudo apt-get install libssl-dev
+ 9917  sudo apt-get install openssl 
+ 9917  sudo apt-get install sqlite
+	   sudo apt-get install libsqlite-dev
+	   sudo apt install libsqlite3-dev
+ 9918  sudo apt-get install openssl-dev
+ yum install openssl-devel
+ yum install openssl
+ ./virtualenv /home/szapp/tankangwen/venv
+ 
+ mkdir ~/.pip
+ cat > ~/.pip/pip.conf << EOF
+ 
+ [global]
+trusted-host=mirrors.aliyun.com
+index-url=https://mirrors.aliyun.com/pypi/simple/
+ 
+
+ pip3 install http://download.pytorch.org/whl/cpu/torch-0.4.1-cp36-cp36m-linux_x86_64.whl
+ pip3 install torchvision
+ 
+ 
+ wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz
+ 
+
+ http://mrjbq7.github.io/ta-lib/install.html
+ 
+ ???vim 8.0
+ 
+  sudo apt-get install libtinfo-dev
+  sudo apt-get install libncurses5-dev
+  git clone https://github.com/vim/vim.git
+  cd vim/src
+   ./configure --enable-python3interp=yes
+  vim --version | grep python
+  
+  ??? Vundle
+   git clone https://github.com/gmarik/vundle.git ~/.vim/bundle/vundle
+?????? .vimrc ??????????????????????? ~/.vimrc.bundles ????????????ȓ???????Ȣ????? ~/.vimrc.bundles ????ȑ????????????
+
+filetype off
+  set rtp+=~/.vim/bundle/vundle/
+call vundle#rc()
+
+????????? ~/.vimrc ????Ȟ????????
+
+if filereadable(expand("~/.vimrc.bundles"))
+  source ~/.vimrc.bundles
+endif
+
+???????? vundle ????????????
+??vundle???????????????vundle???????????~/.vimrc.bundles???????
+Bundle 'davidhalter/jedi-vim'
+??????????????vim????:BundleInstall??????jedi??????????????????????ǹ???
+   
+	??????? vim?????? :BundleInstall   
+	
+https://blog.csdn.net/u014015972/article/details/51344245	
+ 
+ ???????
+ssh 139.159.226.241 18922
+cloud/talkweb!@#
+
+ssh base-smartedu1
+cloud/talkweb!@#
+
+
+sudo apt-get install libsqlite-dev
+$ wget https://www.sqlite.org/2017/sqlite-autoconf-3170000.tar.gz --no-check-certificate
+$ tar zxvf sqlite-autoconf-3170000.tar.gz
+$ cd sqlite-autoconf-3170000
+$ ./configure --prefix=/usr/local/sqlite3 --disable-static --enable-fts5 --enable-json1 CFLAGS="-g -O2 -DSQLITE_ENABLE_FTS3=1 -DSQLITE_ENABLE_FTS4=1 -DSQLITE_ENABLE_RTREE=1"
+
+??2????python3??????????
+$ cd Python-3.6.2
+$ LD_RUN_PATH=/usr/local/sqlite3/lib ./configure LDFLAGS="-L/usr/local/sqlite3/lib" CPPFLAGS="-I /usr/local/sqlite3/include"
+$ LD_RUN_PATH=/usr/local/sqlite3/lib make
+$ LD_RUN_PATH=/usr/local/sqlite3/lib sudo make install
+
+window ??? pytorch
+??? tools????VC_redist.x64.exe
+??? intel-openmp-2018.0.0-8.zip, ???????????path??????Library/bin??
+pip3 install http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-win_amd64.whl
+pip3 install torchvision
+
+intall talib
+wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+pip install TA-Lib
+pip install ./tools/TA_Lib-0.4.17-cp36-cp36m-win_amd64.whl

@@ -1,0 +1,11 @@
+https://blog.csdn.net/csdn_______/article/details/79014984
+
+https://blog.csdn.net/leayc/article/details/78162141?locationNum=8&fps=1
+
+Jupyter Notebook 另一个不太舒服的地方就是默认没有代码折叠功能。手动修改比较麻烦，所以也有人把功能集成到一部分插件里，可以直接在 notebook 界面上点击选项来设置。 
+插件安装和启用：
+
+pip install jupyter_contrib_nbextensions
+jupyter contrib nbextension install --user
+pip install jupyter_nbextensions_configurator
+jupyter nbextensions_configurator enable --user
