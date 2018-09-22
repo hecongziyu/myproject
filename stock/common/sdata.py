@@ -18,7 +18,7 @@ class StockData(object):
         self.datas = self.__read_data__(code)
 
     def __read_data__(self, code):
-        df = pd.read_table('/home/hecong/dplearn/base/stock/data/'+code+'/' + code + '.txt', sep=',', header=0, index_col='Date')
+        df = pd.read_table('/home/hecong/dplearn/data/stockdata/'+code+'/' + code + '.txt', sep=',', header=0, index_col='Date')
         df.index = pd.to_datetime(df.index)
         del df['Extend']
         return df
