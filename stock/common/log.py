@@ -68,6 +68,9 @@ class Logger(object):
 
         # Create and write Summary
         summary = tf.Summary(value=[tf.Summary.Value(tag=tag, histo=hist)])
+
+        
+        
         self.writer.add_summary(summary, step)
         self.writer.flush()
 
