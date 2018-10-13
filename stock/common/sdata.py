@@ -67,7 +67,7 @@ class StockData(object):
     # 增加指标数据
     @staticmethod
     def combine_index_data(data, index_keys=None):
-        from model.indexModel import ProxyTalib as pt
+        from .indexModel import ProxyTalib as pt
         data.Volume = np.double(data.Volume)
         data.Amount = np.double(data.Amount)
         idx_data = pt.proxy(data, index_keys=index_keys)
