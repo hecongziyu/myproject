@@ -11,6 +11,8 @@ import scipy.io as sio
 import xml.etree.ElementTree as ET
 from .imdb import imdb
 
+DATA_DIR = 'D:\\PROJECT_TW\\git\\data\\'
+CACHE_PATH = 'D:\\PROJECT_TW\\git\\data'
 
 class pascal_voc(imdb):
     def __init__(self, image_set, year, devkit_path=None):
@@ -76,7 +78,7 @@ class pascal_voc(imdb):
         """
         Return the default path where PASCAL VOC is expected to be installed.
         """
-        return os.path.join(cfg.DATA_DIR, 'VOCdevkit' + self._year)
+        return os.path.join(DATA_DIR, 'VOCdevkit' + self._year)
 
     def gt_roidb(self):
         """
@@ -84,7 +86,7 @@ class pascal_voc(imdb):
 
         This function loads/saves from/to a cache file to speed up future calls.
         """
-        cache_file = os.path.join(self.cache_path, self.name + '_gt_roidb.pkl')
+        cache_file = os.path.join(CACHE_PATH, self.name + '_gt_roidb.pkl')
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 roidb = pickle.load(fid)
@@ -147,7 +149,7 @@ class pascal_voc(imdb):
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def _load_selective_search_roidb(self, gt_roidb):
-        filename = os.path.abspath(os.path.join(cfg.DATA_DIR,
+        filename = os.path.abspath(os.path.join(DATA_DIR,
                                                 'selective_search_data',
                                                 self.name + '.mat'))
         assert os.path.exists(filename), \
