@@ -75,6 +75,7 @@ class resizeNormalize(object):
     def __call__(self, img):
 #         img = img.resize(self.size, self.interpolation)
         # 注意transforms.ToTensor 会将数据做归一化处理，在正式用的时候也需要将数据调用该方法做归一化处理
+        img = cv2.resize(img,(32,32))
         img = self.toTensor(img)
 #         img.sub_(0.5).div_(0.5)
         return img
