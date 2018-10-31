@@ -36,6 +36,7 @@ import numpy as np
 #       [ -79., -167.,   96.,  184.],
 #       [-167., -343.,  184.,  360.]])
 
+# scales=2 ** np.arange(3, 6) --> 8, 16, 32   ..   2**3 == 8 表示2的3次方
 def generate_anchors(base_size=16, ratios=[0.5, 1, 2],
                      scales=2 ** np.arange(3, 6)):
   """
