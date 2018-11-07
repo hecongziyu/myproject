@@ -5,7 +5,7 @@ from .generate_anchors import generate_anchors
 from ..utils.bbox import bbox_overlaps
 import torch
 
-DEBUG = True
+DEBUG = False
 RPN_CLOBBER_POSITIVES = False
 RPN_POSITIVE_OVERLAP = 0.8
 RPN_NEGATIVE_OVERLAP = 0.5
@@ -25,10 +25,15 @@ def bbox_transform(ex_rois, gt_rois):
     ex_heights = ex_rois[:, 3] - ex_rois[:, 1] + 1.0
     ex_ctr_x = ex_rois[:, 0] + 0.5 * ex_widths
     ex_ctr_y = ex_rois[:, 1] + 0.5 * ex_heights
+    
+    
+    if DEBUG:
+        print('ex widths --> {} \n {}'.format(ex_widths.size(),ex_widths))
+        print('ex heights --> \n {}'.format(ex_heights))
 
-    assert np.min(ex_widths) > 0.1 and np.min(ex_heights) > 0.1, \
+    assert np.min(ex_widths.data.numpy()) > 0.1 and np.min(ex_heights.data.numpy()) > 0.1, \
         'Invalid boxes found: {} {}'. \
-            format(ex_rois[np.argmin(ex_widths), :], ex_rois[np.argmin(ex_heights), :])
+            format(ex_rois[np.argmin(ex_widths.data.numpy()), :], ex_rois[np.argmin(ex_heights.data.numpy()), :])
 
     gt_widths = gt_rois[:, 2] - gt_rois[:, 0] + 1.0
     gt_heights = gt_rois[:, 3] - gt_rois[:, 1] + 1.0
@@ -103,7 +108,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
 
     if DEBUG:
         print('AnchorTargetLayer: height', height, 'width', width)
-        print('')
+        print('all anchors size {}'.format(all_anchors.shape))
         print('im_size: ({}, {})'.format(im_info[0], im_info[1]))
         print('scale: {}'.format(im_info[2]))
         print('height, width: ({}, {})'.format(height, width))
@@ -131,9 +136,9 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
         (all_anchors[:, 3] < im_info[0] + _allowed_border)  # height
     )[0]
     
-    if DEBUG:
-        print('total_anchors', total_anchors)
-        print('inds_inside', len(inds_inside))    
+#     if DEBUG:
+#         print('total_anchors', total_anchors)
+#         print('inds_inside', len(inds_inside))    
 
     # keep only inside anchors
     anchors = all_anchors[inds_inside, :]
@@ -151,8 +156,8 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
         np.ascontiguousarray(anchors, dtype=np.float),
         np.ascontiguousarray(gt_boxes, dtype=np.float))
     
-    if DEBUG:
-        print('anchors , gt boxes --> overlaps:', overlaps)
+#     if DEBUG:
+#         print('anchors , gt boxes --> overlaps:', overlaps)
 
     # axis=1 按行值    axis=0 按列值.  argmax(axis=1) 按行值找到对应列值最大的项
     argmax_overlaps = overlaps.argmax(axis=1) # (A)#找到和每一个gtbox，overlap最大的那个anchor
@@ -165,10 +170,10 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
                                np.arange(overlaps.shape[1])]  
     gt_argmax_overlaps = np.where(overlaps == gt_max_overlaps)[0]   # 返回overlaps=gt max overlaps
     
-    if DEBUG:
-        print('arg max over laps ->', argmax_overlaps)
-        print('max over laps ->', max_overlaps)
-        print('gt argmax overlaps ->',len(gt_argmax_overlaps))
+#     if DEBUG:
+#         print('arg max over laps ->', argmax_overlaps)
+#         print('max over laps ->', max_overlaps)
+#         print('gt argmax overlaps ->',len(gt_argmax_overlaps))
 
     if not RPN_CLOBBER_POSITIVES:
         # assign bg labels first so that positive labels can clobber them
@@ -202,16 +207,22 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
             bg_inds, size=(len(bg_inds) - num_bg), replace=False)
         labels[disable_inds] = -1
         
-    if DEBUG:
-        print('Number FG -> {}  Number BG -> {}'.format(num_fg, num_bg))
+#     if DEBUG:
+#         print('Number FG -> {}  Number BG -> {}'.format(num_fg, num_bg))
 
     bbox_targets = np.zeros((len(inds_inside), 4), dtype=np.float32)
     
     # argmax_overlaps是对应anchors每一行对应最大的列索引值，相对于gt_boxes则是其对应的行号
     cgt_boxes = gt_boxes[argmax_overlaps, :]
-    if DEBUG:
-        print('anchors size -> {} cgt boxes size -> {}'.format(anchors.shape, cgt_boxes.shape))
+#     if DEBUG:
+#         print('anchors size -> {} cgt boxes size -> {}'.format(anchors.shape, cgt_boxes.shape))
+#         print('anchors --> {}'.format(anchors))
+#         print('cgt boxes --> {}'.format(cgt_boxes))
+    
+    
     bbox_targets = _compute_targets(anchors, cgt_boxes )
+    if DEBUG:
+        print('bbox target {} --> \n {}'.format(bbox_targets.shape,bbox_targets)) 
 
     # zz = bbox_transform_inv(torch.from_numpy(anchors[4506]).view(1,4),torch.from_numpy(bbox_targets[4506]).view(1,4))
 
@@ -294,7 +305,7 @@ def _compute_targets(ex_rois, gt_rois):
     assert ex_rois.shape[1] == 4
     assert gt_rois.shape[1] == 5
 
-    return bbox_transform(torch.from_numpy(ex_rois), torch.from_numpy(gt_rois[:, :4])).numpy()
+    return bbox_transform(torch.from_numpy(ex_rois), torch.from_numpy(gt_rois[:, :4]))
 
 
 
