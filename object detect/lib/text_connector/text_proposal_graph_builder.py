@@ -60,8 +60,8 @@ class TextProposalGraphBuilder:
         self.im_size=im_size
         self.heights=text_proposals[:, 3]-text_proposals[:, 1]+1
 
-        print("<<< self heights ")
-        print(self.heights)
+#         print("<<< self heights ")
+#         print(self.heights)
 
         boxes_table=[[] for _ in range(self.im_size[1])]
         for index, box in enumerate(text_proposals):
