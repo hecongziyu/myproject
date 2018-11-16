@@ -68,7 +68,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, _feat_stride, 
     # import pdb
     # pdb.set_trace()
 
-    scores = rpn_cls_prob[:, :, :, num_anchors:]
+    scores = rpn_cls_prob[:, :, :, 1::2]
     rpn_bbox_pred = rpn_bbox_pred.view((-1, 4))
     scores = scores.contiguous().view(-1, 1)
     # import pdb

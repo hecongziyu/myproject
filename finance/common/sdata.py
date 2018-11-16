@@ -33,12 +33,12 @@ class StockData(object):
         columns = []
         for i in range(ndays):
             shift_num = 0 - i - 1
-            columns.append('IM_'+str(i+1))
-            self.datas['IM_'+str(i+1)] =  ((((Close.shift(shift_num).values + Low.shift(shift_num).values + High.shift(shift_num).values)/3)/Close) -1) * 100
+            columns.append('IMCOME_'+str(i+1))
+            self.datas['IMCOME_'+str(i+1)] =  ((((Close.shift(shift_num).values + Low.shift(shift_num).values + High.shift(shift_num).values)/3)/Close) -1) * 100
         self.datas = self.datas.dropna(axis=0,how='any')        # how = any 指只要出现一个就删除  = all 是只有所有为空进删除
         self.datas['INCOME'] = self.datas[columns].max(axis=1)
-        for key in columns:
-            del self.datas[key]
+#         for key in columns:
+#             del self.datas[key]
 
         self.datas['Flag'] = list(map(lambda x: 0 if x <= sell else(1 if x > sell and x <= buy  else 2),self.datas.INCOME))
         return self.datas
