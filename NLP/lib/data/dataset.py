@@ -4,6 +4,7 @@ import numpy as np;
 import os
 import jieba
 import gensim.models.word2vec as w2v
+import torch
 
 def is_chinese(uchar):
     """判断一个unicode是否是汉字"""
@@ -67,8 +68,8 @@ class EduData(data.Dataset):
 #         # 数据补全到64位长度, 补空格
 #         words = words.ljst(self.max_len,' ')
 #         words = words[0,self.max_len]
-        word_ids = [self.word_to_idx[x] for x in words if x in self.word_to_idx]
-        return word_ids, self.labels[index], words
+        word_ids = np.array([self.word_to_idx[x] for x in words if x in self.word_to_idx])
+        return torch.from_numpy(word_ids).long(), self.labels[index]
     
     def __len__(self):
         return self.len    

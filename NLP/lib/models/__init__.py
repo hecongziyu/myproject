@@ -1,5 +1,5 @@
-from .CNNText_inception import CNNText_inception,Inception
-from .loss import multilabelloss,bceloss,multilabel_marginloss
+# from .CNNText_inception import CNNText_inception,Inception
+# from .loss import multilabelloss,bceloss,multilabel_marginloss
 # from .CNNText import CNNText
 # from .MultiCNNText import MultiCNNText
 # from .MultiCNNTextMultiLayer import MultiText 

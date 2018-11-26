@@ -14,6 +14,7 @@ class Inception(nn.Module):
         if norm:self.activa.add_module('norm',nn.BatchNorm1d(co))
         if relu:self.activa.add_module('relu',nn.ReLU(True))
         self.branch1 =nn.Sequential(OrderedDict([
+            # Conv1d(in_channels, out_channels)
             ('conv1', nn.Conv1d(cin,cos[0], 1,stride=1)),
             ])) 
         self.branch2 =nn.Sequential(OrderedDict([
@@ -38,43 +39,52 @@ class Inception(nn.Module):
         branch3=self.branch3(x)
         branch4=self.branch4(x)
         result=self.activa(torch.cat((branch1,branch2,branch3,branch4),1))
+#         print('inception conv result size --> {}'.format(result.size()))
         return result
+    
 class CNNText_inception(BasicModule):
-    def __init__(self, opt ):
+    def __init__(self, opt, embed_weight):
         super(CNNText_inception, self).__init__()
         incept_dim=opt.inception_dim
         self.model_name = 'CNNText_inception'
         self.opt=opt
-        self.encoder = nn.Embedding(opt.vocab_size,opt.embedding_dim)
-        self.title_conv=nn.Sequential(
-            Inception(opt.embedding_dim,incept_dim),#(batch_size,64,opt.title_seq_len)->(batch_size,32,(opt.title_seq_len)/2)
-            Inception(incept_dim,incept_dim),
-            nn.MaxPool1d(opt.title_seq_len)
-        )
+        self.encoder = nn.Embedding(opt.vocab_size,opt.embedding_dim,_weight=embed_weight)
+        # 暂时不需要title conv
+#         self.title_conv=nn.Sequential(
+#             Inception(opt.embedding_dim,incept_dim),#(batch_size,64,opt.title_seq_len)->(batch_size,32,(opt.title_seq_len)/2)
+#             Inception(incept_dim,incept_dim),
+#             nn.MaxPool1d(opt.title_seq_len)
+#         )
         self.content_conv=nn.Sequential(
-            Inception(opt.embedding_dim,incept_dim),#(batch_size,64,opt.content_seq_len)->(batch_size,64,(opt.content_seq_len)/2)
+            #(batch_size,64,opt.content_seq_len)->(batch_size,64,(opt.content_seq_len)/2)
+            Inception(opt.embedding_dim,incept_dim),
             #Inception(incept_dim,incept_dim),#(batch_size,64,opt.content_seq_len/2)->(batch_size,32,(opt.content_seq_len)/4)
-            Inception(incept_dim,incept_dim),
+            Inception(incept_dim,incept_dim), 
             nn.MaxPool1d(opt.content_seq_len)
         )
         self.fc = nn.Sequential(
-            nn.Linear(incept_dim*2,opt.linear_hidden_size),
+#             nn.Linear(incept_dim*2,opt.linear_hidden_size),
+            nn.Linear(incept_dim,opt.linear_hidden_size),
             nn.BatchNorm1d(opt.linear_hidden_size),
             nn.ReLU(inplace=True),
             nn.Linear(opt.linear_hidden_size,opt.num_classes)
         )
-        if opt.embedding_path:
-            print('load embedding')
-            self.encoder.weight.data.copy_(t.from_numpy(np.load(opt.embedding_path)['vector']))
+#         if opt.embedding_path:
+#             print('load embedding')
+#             self.encoder.weight.data.copy_(t.from_numpy(np.load(opt.embedding_path)['vector']))
  
-    def forward(self,title,content):
-        title = self.encoder(title)
+    # 修改，不检测内容标题
+#     def forward(self,title,content):
+    def forward(self,content):
+#         title = self.encoder(title)
         content=self.encoder(content)
-        if self.opt.static:
-            title=title.detach()
-            content=content.detach(0)
-        title_out=self.title_conv(title.permute(0,2,1))
+#         print(content.size())
+#         if self.opt.static:
+#             title=title.detach()
+#             content=content.detach(0)
+#         title_out=self.title_conv(title.permute(0,2,1))
         content_out=self.content_conv(content.permute(0,2,1))
-        out=torch.cat((title_out,content_out),1).view(content_out.size(0), -1)
-        out=self.fc(out)
+#         out=torch.cat((title_out,content_out),1).view(content_out.size(0), -1)
+        content_out = content_out.view(content_out.size(0),-1)
+        out=self.fc(content_out)
         return out
