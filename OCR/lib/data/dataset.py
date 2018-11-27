@@ -3,6 +3,7 @@ import os
 import lmdb  
 import numpy as np
 import cv2
+import glob
 lmdb_path = '/home/hecong/temp/data/ocr/lmdb'
 img_path = '/home/hecong/temp/data/ocr/dataline'
 def checkImageIsValid(imageBin):
@@ -95,4 +96,4 @@ def main_create_data():
     imgPaths = [p[0] for p in imgLabelList]
     txtLists = [p[1] for p in imgLabelList]
 
-    createDataset(outputPath, imgPaths, txtLists, lexiconList=None, checkValid=True)
+    createDataset(lmdb_path, imgPaths, txtLists, lexiconList=None, checkValid=True)
