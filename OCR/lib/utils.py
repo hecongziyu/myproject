@@ -19,9 +19,9 @@ class strLabelConverter(object):
         # import ipdb
         # ipdb.set_trace()
         """Support batch or single str."""
-        #if isinstance(text, str):
-        #    text = [self.dict[char.lower()] for char in text]
-        #    length = [len(text)]
+        if isinstance(text, str):
+           text = [self.dict[char.lower()] for char in text]
+           length = [len(text)]
 
         if isinstance(text, str):
             text = [self.dict.get(char, 0) for char in text]
