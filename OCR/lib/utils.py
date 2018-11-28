@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-import collections
+# -*- coding:utf-8 -*-
 
 import torch
 import torch.nn as nn
@@ -9,30 +7,23 @@ import torch.nn as nn
 class strLabelConverter(object):
     def __init__(self, alphabet):
         self.alphabet = alphabet + u'-'  # for `-1` index
-
         self.dict = {}
         for i, char in enumerate(alphabet):
             # NOTE: 0 is reserved for 'blank' required by wrap_ctc
             self.dict[char] = i + 1
 
     def encode(self, text, depth=0):
-        # import ipdb
-        # ipdb.set_trace()
         """Support batch or single str."""
-        if isinstance(text, str):
-           text = [self.dict[char.lower()] for char in text]
-           length = [len(text)]
-
-        if isinstance(text, str):
-            text = [self.dict.get(char, 0) for char in text]
-            length = [len(text)]
-        elif isinstance(text, collections.Iterable):
-            length = [len(text)]
-            text = ''.join(str(v) for v in text)
-            text, _ = self.encode(text)
-
-        if depth:
-            return text, len(text)
+        length = []
+        result = []
+        for str in text:
+            # str = unicode(str, "utf8")    # python 3 默认为utf 8
+            length.append(len(str))
+            for char in str:
+                # print(char)
+                index = self.dict[char]
+                result.append(index)
+        text = result
         return (torch.IntTensor(text), torch.IntTensor(length))
 
     def decode(self, t, length, raw=False):
@@ -52,9 +43,8 @@ class strLabelConverter(object):
             index = 0
             for i in range(length.numel()):
                 l = length[i]
-                texts.append(
-                    self.decode(
-                        t[index:index + l], torch.IntTensor([l]), raw=raw))
+                texts.append(self.decode(
+                    t[index:index + l], torch.IntTensor([l]), raw=raw))
                 index += l
             return texts
 
@@ -99,8 +89,7 @@ def loadData(v, data):
 
 def prettyPrint(v):
     print('Size {0}, Type: {1}'.format(str(v.size()), v.data.type()))
-    print('| Max: %f | Min: %f | Mean: %f' % (v.max().data[0], v.min().data[0],
-                                              v.mean().data[0]))
+    print('| Max: %f | Min: %f | Mean: %f' % (v.max().data[0], v.min().data[0], v.mean().data[0]))
 
 
 def assureRatio(img):

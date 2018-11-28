@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # 生成测试Image
-import lib.data.char
+import lib.data.char as char
 from PIL import Image, ImageDraw, ImageFont
 import random
 data_path = '/home/hecong/temp/data/ocr/dataline/'
