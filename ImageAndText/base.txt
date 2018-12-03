@@ -1,3 +1,9 @@
+http://www.cnblogs.com/tornadomeet/archive/2013/05/05/3061457.html (Stacked CNN简单介绍)
+
+https://github.com/hanzhanggit/StackGAN-Pytorch  # 采用该方式先实现一个简单的模型  ......
+
+https://blog.csdn.net/fate_fjh/article/details/53446630  pytorch Upsample(向上采样） DownSample(向下采样）
+
 https://blog.csdn.net/luolan9611/article/details/79899325 Image Generation from Scene Graphs从场景图中生成图像 [文本转图]
     
 https://blog.csdn.net/timso1997/article/details/79773544  多分类与多标签算法(Multiclass and multilabel algorithms)的定义与区别
