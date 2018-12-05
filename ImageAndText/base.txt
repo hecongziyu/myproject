@@ -4,23 +4,35 @@ https://github.com/hanzhanggit/StackGAN-Pytorch  # 采用该方式先实现一�
 
 https://blog.csdn.net/fate_fjh/article/details/53446630  pytorch Upsample(向上采样） DownSample(向下采样）
 
-https://blog.csdn.net/luolan9611/article/details/79899325 Image Generation from Scene Graphs从场景图中生成图像 [文本转图]
-    
-https://blog.csdn.net/timso1997/article/details/79773544  多分类与多标签算法(Multiclass and multilabel algorithms)的定义与区别
+https://blog.csdn.net/luolan9611/article/details/79899325 Image Generation from Scene Graphs从场景图中生成图像 [文本转图] https://github.com/google/sg2im  (重点)
+
+https://blog.csdn.net/stdcoutzyx/article/details/78575240 GAN之根据文本描述生成图像
+
     
 https://www.cnblogs.com/wangxiaocvpr/p/6283167.html 能根据文字生成图片的 GAN，深度学习领域的又一新星
     
 https://github.com/llSourcell/how_to_convert_text_to_images  how_to_convert_text_to_images  
     
 https://arxiv.org/pdf/1612.03242v1.pdf
+
+https://blog.csdn.net/zlrai5895/article/details/81320447 StackGAN++
     
-https://blog.csdn.net/ycy0706/article/details/80425091  GAN+文本生成：让文本以假乱真
+https://blog.csdn.net/ycy0706/article/details/80425091  GAN+文本生成：让文本以假乱真   （重点，包括蒙特卡罗树搜索）
     
 https://blog.csdn.net/lujohn3li/article/details/79728799 硬货]|如何利用深度学习写诗歌（使用Python进行文本生成）
     
-https://blog.csdn.net/stdcoutzyx/article/details/78575240 GAN之根据文本描述生成图像
+https://blog.csdn.net/jinxueliu31/article/details/51008271  自动生成图像的文本描述    
+
+https://blog.csdn.net/dinosoft/article/details/50893291 蒙特卡罗树搜索+深度学习 -- AlphaGo原版论文阅读笔记
     
 https://blog.csdn.net/lqfarmer/article/details/75212201 https://blog.csdn.net/caimouse/article/details/60749058 强化学习（Reinforcement Learning）算法基础及分类, 强化学习(reinforcement learning)，又称再励学习、评价学习，是一种重要的机器学习方法，在智能控制机器人及分析预测等领域有许多应用。但在传统的机器学习分类中没有提到过强化学习，而在连接主义学习中，把学习算法分为三种类型，即非监督学习(unsupervised learning)、监督学习(supervised leaning)和强化学习。强化学习（Reinforcement learning）灵感来源于心理学中的行为主义理论，即有机体如何在环境给予的奖励或惩罚的刺激下，逐步形成对刺激的预期，产生能获得最大利益的习惯性行为。
+
+
+https://blog.csdn.net/timso1997/article/details/79773544  多分类与多标签算法(Multiclass and multilabel algorithms)的定义与区别
+
+http://www.360doc.com/content/17/0709/07/40028542_669963176.shtml  训练一个能自动编程的神经网络
+
+http://www.aboutyun.com/thread-20745-1-1.html 深度学习如何指导机器自动编写出能正确执行的代码 
 
 
 http://wemedia.ifeng.com/68813402/wemedia.shtml T2F：所述即所见，使用深度学习，文本一键生成人脸   https://github.com/akanimax/T2F 源码

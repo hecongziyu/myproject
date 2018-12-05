@@ -4,8 +4,7 @@ import lmdb
 import numpy as np
 import cv2
 import glob
-lmdb_path = '/home/hecong/temp/data/ocr/lmdb'
-img_path = '/home/hecong/temp/data/ocr/dataline'
+
 def checkImageIsValid(imageBin):
     if imageBin is None:
         return False
@@ -39,8 +38,8 @@ def createDataset(outputPath, imagePathList, labelList, lexiconList=None, checkV
     # print (len(imagePathList) , len(labelList))
     assert (len(imagePathList) == len(labelList))
     nSamples = len(imagePathList)
-    print('...................')
-    env = lmdb.open(outputPath, map_size=1099511627776)
+    print('samples length -- > {}'.format(nSamples))
+    env = lmdb.open(outputPath, map_size=5099511627)
 
     cache = {}
     cnt = 1
@@ -76,19 +75,20 @@ def createDataset(outputPath, imagePathList, labelList, lexiconList=None, checkV
 
 
 def read_text(path):
-    with open(path) as f:
+    with open(path, encoding='UTF-8') as f:
         text = f.read()
     text = text.strip()
 
     return text
-def main_create_data():
+def main_create_data(lmdb_path,img_path):
     imagePathList = glob.glob('{}/*.jpg'.format(img_path))
     imgLabelLists = []
     for p in imagePathList:
-        try:
-            imgLabelLists.append((p, read_text(p.replace('.jpg', '.txt'))))
-        except:
-            continue
+        # try:
+        imgLabelLists.append((p, read_text(p.replace('.jpg', '.txt'))))
+        # except:
+        #     print(e)
+        #     continue
 
     # imgLabelList = [ (p,read_text(p.replace('.jpg','.txt'))) for p in imagePathList]
     ##sort by lebelList 
@@ -97,3 +97,10 @@ def main_create_data():
     txtLists = [p[1] for p in imgLabelList]
 
     createDataset(lmdb_path, imgPaths, txtLists, lexiconList=None, checkValid=True)
+
+if __name__ == '__main__':
+    lmdb_path = 'D:/PROJECT_TW/git/data/ocr/lmdb'
+    img_path = 'D:/PROJECT_TW/git/data/ocr/dataline'    
+    main_create_data(lmdb_path,img_path)
+
+
