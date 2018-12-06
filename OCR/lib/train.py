@@ -1,10 +1,11 @@
-import lib.data.char as c
+import data.char as c
 from warpctc_pytorch import CTCLoss
-import lib.utils as utils
+import utils as utils
 import torch.optim as optim
 import os
-import importlib
-importlib.reload(utils)
+from model import CRNN
+# import importlib
+# importlib.reload(utils)
 
 
 ngpu = 0
