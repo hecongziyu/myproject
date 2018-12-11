@@ -39,7 +39,7 @@ def bbox_overlaps(boxes, query_boxes):
     # MIN(Y2) - MAX(Y1)  取出两个边框之间重复的Y轴部分的高
     ih = (torch.min(boxes[:, 3:4], query_boxes[:, 3:4].t()) - torch.max(boxes[:, 1:2], query_boxes[:, 1:2].t()) + 1).clamp(min=0)
     
-    
+    # ??? 
     ua = box_areas.view(-1, 1) + query_areas.view(1, -1) - iw * ih
     overlaps = iw * ih / ua
     if DEBUG:

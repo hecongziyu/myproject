@@ -10,8 +10,8 @@ importlib.reload(bbox)
 
 DEBUG = False
 RPN_CLOBBER_POSITIVES = False
-RPN_POSITIVE_OVERLAP = 0.8
-RPN_NEGATIVE_OVERLAP = 0.5
+RPN_POSITIVE_OVERLAP = 0.7
+RPN_NEGATIVE_OVERLAP = 0.3
 RPN_FG_FRACTION = 0.5
 RPN_BATCHSIZE = 256
 RPN_BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
@@ -172,6 +172,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, im_info, _feat_stride, all_anch
         print('anchors , gt boxes overlaps {} --> \n {}'.format(overlaps.shape,overlaps))
 
     # axis=1 按行值    axis=0 按列值.  argmax(axis=1) 找到anchors每行对应重合度最大的gt_boxes 
+    # overlaps [ N * K]  N anchors length, K gt boxes length
     argmax_overlaps = overlaps.argmax(axis=1) # (A)#找到和每一个gtbox，overlap最大的那个anchor
     if DEBUG:
         print('arg max over laps axis = 1 --> \n {}'.format(argmax_overlaps))
