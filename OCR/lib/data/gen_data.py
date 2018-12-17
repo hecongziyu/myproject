@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # 生成测试Image
-import char as char
+import lib.data.char as char
 from PIL import Image, ImageDraw, ImageFont
 import random
 

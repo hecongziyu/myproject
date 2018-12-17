@@ -2,6 +2,8 @@ http://www.cnblogs.com/tornadomeet/archive/2013/05/05/3061457.html (Stacked CNN�
 
 https://github.com/hanzhanggit/StackGAN-Pytorch  # 采用该方式先实现一个简单的模型  ......
 
+https://arxiv.org/pdf/1612.03242v2.pdf
+
 https://blog.csdn.net/fate_fjh/article/details/53446630  pytorch Upsample(向上采样） DownSample(向下采样）
 
 https://blog.csdn.net/luolan9611/article/details/79899325 Image Generation from Scene Graphs从场景图中生成图像 [文本转图] https://github.com/google/sg2im  (重点)
