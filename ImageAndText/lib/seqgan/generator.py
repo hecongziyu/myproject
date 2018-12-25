@@ -21,7 +21,7 @@ class Generator(nn.Module):
         self.emb = nn.Embedding(num_emb, emb_dim)
         self.lstm = nn.LSTM(emb_dim, hidden_dim, batch_first=True)
         self.lin = nn.Linear(hidden_dim, num_emb)
-        self.softmax = nn.LogSoftmax()
+        self.softmax = nn.LogSoftmax(dim=1)
         self.init_params()
 
     def forward(self, x):
@@ -44,7 +44,7 @@ class Generator(nn.Module):
         """
         emb = self.emb(x)
         output, (h, c) = self.lstm(emb, (h, c))
-        pred = F.softmax(self.lin(output.view(-1, self.hidden_dim)))
+        pred = F.softmax(self.lin(output.view(-1, self.hidden_dim)),dim=1)
         return pred, h, c
 
 

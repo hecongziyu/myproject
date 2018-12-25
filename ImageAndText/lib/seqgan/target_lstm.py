@@ -21,7 +21,7 @@ class TargetLSTM(nn.Module):
         self.emb = nn.Embedding(num_emb, emb_dim)
         self.lstm = nn.LSTM(emb_dim, hidden_dim, batch_first=True)
         self.lin = nn.Linear(hidden_dim, num_emb)
-        self.softmax = nn.LogSoftmax()
+        self.softmax = nn.LogSoftmax(dim=1)
         self.init_params()
 
     def forward(self, x):
@@ -32,7 +32,7 @@ class TargetLSTM(nn.Module):
         emb = self.emb(x)
         h0, c0 = self.init_hidden(x.size(0))
         output, (h, c) = self.lstm(emb, (h0, c0))
-        pred = self.softmax(self.lin(output.contiguous().view(-1, self.hidden_dim)),dim=1)
+        pred = self.softmax(self.lin(output.contiguous().view(-1, self.hidden_dim)))
         return pred        
 
     def step(self, x, h, c):
@@ -69,7 +69,9 @@ class TargetLSTM(nn.Module):
         samples = []
         for i in range(seq_len):
             output, h, c = self.step(x, h, c)
-            # multinomial 抽样  https://blog.csdn.net/guotong1988/article/details/78942998
+            # multinomial 抽样  https://blog.csdn.net/monchin/article/details/79787621
+            # 每一个元素代表其在该行中的权重。如果有元素为0，那么在其他不为0的元素被取干净之前，这个元素是不会被取到的
+            # 作用是对input的每一行做n_samples次取值，输出的张量是每一次取值时input张量对应行的下标
             x = output.multinomial(1)
             samples.append(x)
         output = torch.cat(samples, dim=1)

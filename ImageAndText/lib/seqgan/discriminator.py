@@ -24,7 +24,7 @@ class Discriminator(nn.Module):
         self.highway = nn.Linear(sum(num_filters), sum(num_filters))
         self.dropout = nn.Dropout(p=dropout)
         self.lin = nn.Linear(sum(num_filters), num_classes)
-        self.softmax = nn.LogSoftmax()
+        self.softmax = nn.LogSoftmax(dim=1)
         self.init_parameters()
     
     def forward(self, x):
