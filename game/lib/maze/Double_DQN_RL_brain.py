@@ -65,7 +65,7 @@ class DeepQNetwork(object):
         else:   # random
             action = np.random.randint(0, N_ACTIONS)
             action = action if ENV_A_SHAPE == 0 else action.reshape(ENV_A_SHAPE)
-        print('observation --> {} action --> {}'.format(x, action))
+#         print('observation --> {} action --> {}'.format(x, action))
         return action
 
     def store_transition(self, s, a, r, s_):
@@ -93,12 +93,16 @@ class DeepQNetwork(object):
         b_s_ = Variable(torch.FloatTensor(b_memory[:, -N_STATES:]))
 
         # q_eval w.r.t the action in experience, gathcer 只取列是action的state的值
-#         print('eval net state --> {}'.format(self.eval_net(b_s)))
-#         print('eval net action --> {}'.format(b_a))
         q_eval = self.eval_net(b_s).gather(1, b_a)  # shape (batch, 1)
+        # 取下一次的最大可能action，与target_net计算V值分开
+        q_next_actions = self.eval_net(b_s_).argmax(dim=1)
 #         print('q_eval value --> {}'.format(q_eval))
-        q_next = self.target_net(b_s_).detach()     # detach from graph, don't backpropagate
-        q_target = b_r + GAMMA * q_next.max(1)[0].view(BATCH_SIZE, 1)   # shape (batch, 1)
+        # 代码中的detach和required_grad的引入是减少了计算量，required_grad=false会计算误差，不计算wb的梯度
+        q_next = self.target_net(b_s_).detach()    # detach from graph, don't backpropagate
+        q_next = q_next.gather(1, q_next_actions.view(BATCH_SIZE,1))
+        q_target = b_r + GAMMA * q_next   # shape (batch, 1)
+        
+        
         loss = self.loss_func(q_eval, q_target)
 
         self.optimizer.zero_grad()
