@@ -1,4 +1,4 @@
-from .card import Card
+from lib.poker.card import Card
 
 class Play(object):
     def __init__(self, name="No Name"):
@@ -16,13 +16,18 @@ class Play(object):
     def add_action_history(self):
         pass
     
-    
     def set_cards(self, cards):
         self.cards = cards
         
-    
     def chose_action(self, states):
         print('{} action --> {}'.format(name,'play'))
+        
+    def reset(self):
+        self.cards.clear()
+        self.action_histories.clear()
+        self.is_activate = False
+        
+    
     
     
     

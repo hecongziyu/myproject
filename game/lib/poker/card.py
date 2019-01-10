@@ -33,10 +33,10 @@ class Card(object):
     def __eq__(self, other):
         return self.suit == other.suit and self.rank == other.rank
 
-    def __str__(self):
+    def __repr__(self):
         suit = self.SUIT_MAP[self.suit]
         rank = self.RANK_MAP[self.rank]
-        return '{0}{1}'.format(suit, rank)
+        return '{}{}'.format(suit, rank)
 
     def to_id(self):
         rank = 1 if self.rank == 14 else self.rank
@@ -63,3 +63,4 @@ class Card(object):
         suit = inverse(cls.SUIT_MAP)[str_card[0].upper()]
         rank = inverse(cls.RANK_MAP)[str_card[1]]
         return cls(suit, rank)
+    

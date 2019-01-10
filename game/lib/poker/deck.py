@@ -1,6 +1,6 @@
 # from functools import reduce
 
-from .card import Card
+from lib.poker.card import Card
 import random
 
 class Deck(object):
