@@ -10,11 +10,6 @@ update_count = 1
 def update(play):
     global update_count
 
-    # print('update play name :{}  card: {}  public cards: {}'.format(play.name, 
-                                                                        # play.get_play_cards_id(),
-                                                                        # poker_env.get_public_cards_id()))
-    # print('play card state {} public card state {}'.format(States.cards_to_states(play.get_play_cards_id()),
-                                                           # States.cards_to_states(poker_env.get_public_cards_id())))
 
     pstate = States.cards_to_states(play.get_play_cards_id()) +  States.cards_to_states(poker_env.get_public_cards_id())
     # pstate = [round(x/255,2) for x in pstate]

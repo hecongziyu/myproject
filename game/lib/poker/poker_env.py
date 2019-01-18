@@ -1,5 +1,7 @@
 from lib.poker.play import Play
 from lib.poker.deck import Deck
+from lib.poker.card import Card
+from lib.poker.action import Action
 import time
 
 class Poker(object):
@@ -20,9 +22,28 @@ class Poker(object):
             item.reset()
 
     def poker_play(self, play, action):
+        done = 'run'    
+        reward = 0
+        state = ''
+        # 检测play选择的action是否合法
+        if Action.correct_action(play,action,self.play_actions_his):
+            card = Card.from_id(action)
+            self.public_cards.append(card)
+            self.play_actions_his.append([play.name, action])
+            play.play_card(card)
+            states = play.cards
+            reward = 0.5
+            if len(play.cards) == 0:
+                reward = 1
+                done = 'terminate'
+        else:
+            reward = -1
+            done = 'terminate'
 
-        return self.public_cards
+        return state, reward, done
 
+    def get_public_cards_id(self):
+        return [Card.to_id(x) for x in self.public_cards]
 
     # 刷新        
     def render(self):
@@ -41,12 +62,12 @@ class Poker(object):
         while True:
             for play in self.plays:
                 time.sleep(sleep_time)
-                status = update(play)
-                if status == 'done':
+                done = update(play)
+                if done == 'terminate':
                     break
 
-            if status == 'done':
-                print('game exist')
+            if done == 'terminate':
+                # print('game exist')
                 break
 
 

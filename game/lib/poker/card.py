@@ -11,6 +11,7 @@ class Card(object):
         16 : 'S'}
 
     RANK_MAP = {
+	    1  :  'A',
       2  :  '2',
       3  :  '3',
       4  :  '4',
@@ -22,13 +23,12 @@ class Card(object):
       10 : 'T',
       11 : 'J',
       12 : 'Q',
-      13 : 'K',
-      14 : 'A'}
+      13 : 'K'}
 
 
     def __init__(self, suit, rank):
         self.suit = suit
-        self.rank = 14 if rank == 1 else rank
+        self.rank = rank
 
     def __eq__(self, other):
         return self.suit == other.suit and self.rank == other.rank
@@ -39,7 +39,7 @@ class Card(object):
         return '{}{}'.format(suit, rank)
 
     def to_id(self):
-        rank = 1 if self.rank == 14 else self.rank
+        rank = self.rank
         num = 0
         tmp = self.suit >> 1
         while tmp&1 != 1:

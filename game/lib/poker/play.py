@@ -25,7 +25,11 @@ class Play(object):
 
     def play_card(self, card):
         if card in self.cards:
-            
+            self.cards.remove(card)
+            self.action_histories.append(card)
+
+    def get_play_cards_id(self):
+        return [Card.to_id(x) for x in self.cards]
 
         
     def reset(self):
