@@ -11,19 +11,19 @@ class Card(object):
         16 : 'S'}
 
     RANK_MAP = {
-	    1  :  'A',
-      2  :  '2',
-      3  :  '3',
-      4  :  '4',
-      5  :  '5',
-      6  :  '6',
-      7  :  '7',
-      8  :  '8',
-      9  :  '9',
-      10 : 'T',
-      11 : 'J',
-      12 : 'Q',
-      13 : 'K'}
+	    12  :  'A',
+      13  :  '2',
+      1  :  '3',
+      2  :  '4',
+      3  :  '5',
+      4  :  '6',
+      5  :  '7',
+      6  :  '8',
+      7  :  '9',
+      8 : 'T',
+      9 : 'J',
+      10 : 'Q',
+      11 : 'K'}
 
 
     def __init__(self, suit, rank):
@@ -46,14 +46,14 @@ class Card(object):
             num += 1
             tmp >>= 1
 
-        return rank + 13 * num
+        return rank + 12 * num
 
     @classmethod
     def from_id(cls, card_id):
         suit, rank = 2, card_id
-        while rank > 13:
+        while rank > 12:
             suit <<= 1
-            rank -= 13
+            rank -= 12
         return cls(suit, rank)
 
     @classmethod
