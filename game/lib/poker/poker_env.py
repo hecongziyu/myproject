@@ -24,9 +24,9 @@ class PokerEnv(object):
             pi = self.mcts.getActionProb(canonicalTable, temp=temp) #
             trainExamples.append([canonicalTable, self.curPlayer, pi, None])   保存状态     
             action = np.random.choice(len(pi), p=pi)
-            table, self.curPlayer = self.game.getNextState(canonicalTable, self.curPlayer, action) 
-            r = self.game.getGameEnded(table, self.curPlayer)  # 返回得分
-
+            self.curPlayer = self.game.getNextState(canonicalTable, self.curPlayer, action) 
+            r = self.game.checkGameEnded(self.curPlayer, action)  # 返回得分
+            
     
     
     
