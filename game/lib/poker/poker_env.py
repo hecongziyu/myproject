@@ -26,7 +26,8 @@ class PokerEnv(object):
             action = np.random.choice(len(pi), p=pi)
             self.curPlayer = self.game.getNextState(canonicalTable, self.curPlayer, action) 
             r = self.game.checkGameEnded(self.curPlayer, action)  # 返回得分
-            
+            if r[self.curPlayer] != 0:
+                return [(x[0],r[x[1]],x[2]) for x in trainExamples]
     
     
     
