@@ -40,6 +40,9 @@ class PokerGame(object):
         cur_play = (cur_play+1)%self.play_num
         return [self.plays[cur_play],self.public_cards]
 
+    def getValidActions(self, player, action):
+        return self.plays[player].cards > action
+
     # 检测是否结束，如已结束，返回相应状态
     # 参数 cur_play, action(上一个play的action)
     def checkGameEnded(self, cur_play, action):
@@ -50,12 +53,12 @@ class PokerGame(object):
                 return r
 
         # 当action为0时，当前用户只有一张时，该用户win，返回
-        if action == 0 && self.plays[cur_play].get_cards_num() == 1:
+        if action == 0 and self.plays[cur_play].get_cards_num() == 1:
             r[self.cur_play] = 1
             return r
 
         # 当action不为0时，当前用户只有一张时，检测该用户最后一张是否大于该action对应的card
-        if action != 0 && self.plays[cur_play].get_cards_num() == 1:
+        if action != 0 and self.plays[cur_play].get_cards_num() == 1:
             if self.plays[cur_play].cards[-1] > action:
                 r[self.cur_play] = 1
                 return r
