@@ -50,11 +50,14 @@ class Card(object):
 
     @classmethod
     def from_id(cls, card_id):
-        suit, rank = 2, card_id
-        while rank > 12:
-            suit <<= 1
-            rank -= 12
-        return cls(suit, rank)
+        if card_id >0:
+          suit, rank = 2, card_id
+          while rank > 12:
+              suit <<= 1
+              rank -= 12
+          return cls(suit, rank)
+        else:
+          return 0
 
     @classmethod
     def from_str(cls, str_card):

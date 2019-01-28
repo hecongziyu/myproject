@@ -14,11 +14,9 @@ class Play(object):
         self.status = 'playing'
 
 
-
     def remove_card(self, card):
         if card in self.cards:
             self.cards.remove(card)
-            self.action_histories.append(card)
 
-    def get_cards_len(self):
-        print len(self.cards)
+    def get_cards_num(self):
+        return len(self.cards)

@@ -16,7 +16,6 @@ class States(object):
         return states
         
 
-
     @staticmethod
     def states_to_cards(states, states_number=14, split_number=1):
         assert len(states) == 4
