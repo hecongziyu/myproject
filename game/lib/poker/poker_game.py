@@ -6,6 +6,7 @@ from lib.poker.deck import Deck
 from lib.poker.card import Card
 from lib.poker.state import States
 import numpy as np
+
 class PokerGame(object):
     def __init__(self, play_num, card_num=12):
         self.plays = []
@@ -94,6 +95,10 @@ class PokerGame(object):
 
         
         return r
+
+    def stringRepresentation(self, states):
+        # 8x8 numpy array (canonical board)
+        return np.array(states).tostring()
 
 if __name__ == '__main__':
     game = PokerGame(play_num=2, card_num=12)

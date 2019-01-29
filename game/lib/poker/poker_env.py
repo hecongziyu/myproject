@@ -148,7 +148,7 @@ class PokerEnv(object):
 if __name__ == '__main__':
     pv = PokerEnv()
     pv.loadTrainExamples()
-    pv.learn(10000000)   
+    pv.learn(10)   
     
     
     
