@@ -1,6 +1,8 @@
 import math
 import numpy as np
-
+import sys
+import pdb
+EPS = 1e-8
 
 class MCTS(object):
     def __init__(self, game, nnet, args):
@@ -15,16 +17,26 @@ class MCTS(object):
         self.Vs = {}        # stores game.getValidMoves for board s
 
 
-    def getActionProb(self, states, cur_play, action, temp=1):
-        # s = states
+    def getActionProb(self, playerTable, cur_play, action, temp=1):
+        states = self.game.getTableStates(playerTable)
         # p,v = self.nnet.predict(s)
-        # valid_actions = self.game.getValidActions(cur_play, action)
+        valid_actions = self.game.getValidActions(playerTable,cur_play, action)
+        # play table , action 上一个player的action
+        for i in range(2):
+            self.search(playerTable, action)
+            # r = input(". Continue? [y|n]")
+            # if r != "y":
+            #     sys.exit()            
 
-        for i in range(10):
-            self.search(states, cur_play, action)
+        s = self.game.stringRepresentation(states)
 
-        s = self.game.stringRepresentation(canonicalBoard)
+        # 根据MCTS的s,a状态次数，来选择action
+        print('Counts Nsa {}'.format(self.Nsa))
+        print('Counts state s  {}'.format(s))
+
         counts = [self.Nsa[(s,a)] if (s,a) in self.Nsa else 0 for a in range(self.game.getActionSize())]
+
+        print('couns {}'.format(counts))
         # 需修改成树搜索方式，本处暂时不要
         if temp==0:
             bestA = np.argmax(valid_actions)
@@ -34,25 +46,40 @@ class MCTS(object):
 
         counts = [x**(1./temp) for x in counts]
         probs = [x/float(sum(counts)) for x in counts]
+
+        # probs = p * valid_actions
+
+        # probs = [x/float(sum(probs)) for x in probs]
         return probs
 
 
 
-    def search(self, states,cur_play, action):
+    def search(self, playerTable,action):
+        print('search play table {} action {}'.format(playerTable, action))
+        # print('Qsa {}'.format(self.Qsa))
+        # print('Nsa {}'.format(self.Nsa))
+        # print('Es {}'.format(self.Es))
+        # print('Ps {}'.format(self.Ps))
+        # pdb.set_trace()
+        
+        states = self.game.getTableStates(playerTable,0)
         s = self.game.stringRepresentation(states)
 
         # ES  stores game.getGameEnded ended for board s
         if s not in self.Es:
-            self.Es[s] = self.game.checkGameEnded((cur_play+1)%2, action)
+            self.Es[s] = self.game.checkGameEnded(playerTable, 0, action)
+
         if self.Es[s][0]!=0:
             # terminal node
-            return [-x for x in self.Es[s]]
+            return self.Es[s][0]
 
-         # PS stores initial policy (returned by neural net)
-         if s not in self.Ps:
+        # PS stores initial policy (returned by neural net)
+
+        if s not in self.Ps:
+
             # leaf node
             self.Ps[s], v = self.nnet.predict(states)
-            valids = self.game.getValidMoves((cur_play+1)%2, action)
+            valids = self.game.getValidActions(playerTable,0, action)
             self.Ps[s] = self.Ps[s]*valids      # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
@@ -70,7 +97,7 @@ class MCTS(object):
             # Ns stores #times board s was visited
             self.Ns[s] = 0
             #  ？？？ why return -v
-            return -v
+            return v
 
         valids = self.Vs[s]
         cur_best = -float('inf')
@@ -89,10 +116,12 @@ class MCTS(object):
                     best_act = a
 
         a = best_act
-        next_s, next_player = self.game.getNextState(cur_play, a)
-        next_s = self.game.getTableFrom(next_player)
-        next_s = self.game.getTableStates(next_s)
-        v = self.search(next_s, next_player, a)
+
+        next_s, next_player = self.game.getNextState(playerTable,0,a)
+        print('cur table {} next table {}'.format(playerTable, next_s))
+        # next_s = self.game.getTableFrom(playerTable, next_player)
+
+        v = self.search(next_s, a)
 
         if (s,a) in self.Qsa:
             self.Qsa[(s,a)] = (self.Nsa[(s,a)]*self.Qsa[(s,a)] + v)/(self.Nsa[(s,a)]+1)
@@ -103,7 +132,7 @@ class MCTS(object):
             self.Nsa[(s,a)] = 1
 
         self.Ns[s] += 1
-        return -v
+        return v
 
 
 

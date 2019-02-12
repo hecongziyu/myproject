@@ -1,3 +1,44 @@
+mcts state:
+    Qsa : stores Q values for s,a (as defined in the paper)
+    Nsa : stores #times edge s,a was visited
+    Ns  : stores #times board s was visited
+    Ps  : # stores initial policy (returned by neural net)
+    Es  : # stores game.getGameEnded ended for board s
+    Vs  : stores game.getValidMoves for board s
+
+
+    state: private card, public card, last round action(???)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 poker_env:
 
     self.mcts = MCTS(self.game, self.nnet, self.args)

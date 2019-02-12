@@ -31,24 +31,24 @@ class PokerEnv(object):
 
     def executeEpisode(self):
         trainExamples = []
-        table = self.game.getInitTable()
+        playerTable = self.game.getInitTable()
         self.curPlayer = 0
         episodeStep = 0
         action = 0
+        print('init table {}'.format(playerTable))
         while(True):
             episodeStep +=1
-            canonicalTable = self.game.getTableFrom(self.curPlayer)   
+            playerTable = self.game.getTableFrom(playerTable, self.curPlayer)   
             temp = int(episodeStep < 5) 
-            stateTable = self.game.getTableStates(canonicalTable)
-            # print('ct --> {} st --> {}'.format(canonicalTable, stateTable))
-            pi = self.mcts.getActionProb(stateTable,self.curPlayer, action, temp=temp) #
-            # print('pi --> {}'.format(pi))
+            pi = self.mcts.getActionProb(playerTable,self.curPlayer, action, temp=temp) #
+            # print('pi --> {}'.format(pi))  ????
             action = np.random.choice(len(pi), p=pi)
-            trainExamples.append([canonicalTable, self.curPlayer, pi, action])   #保存状态 
-            canonicalTable, self.curPlayer = self.game.getNextState(self.curPlayer, action) 
-            r = self.game.checkGameEnded(self.curPlayer, action)  # 返回得分
+
+            trainExamples.append([playerTable[self.curPlayer].copy(),playerTable[2].copy(),self.curPlayer, pi, action])   #保存状态 
+            playerTable, self.curPlayer = self.game.getNextState(playerTable, self.curPlayer, action) 
+            r = self.game.checkGameEnded(playerTable, self.curPlayer, action)  # 返回得分
             if r[self.curPlayer] != 0:
-                return [(x[0],r[x[1]],x[2],x[3]) for x in trainExamples]
+                return [(x[0],x[1],r[x[2]],x[3],x[4]) for x in trainExamples]
 
 
     def learn(self, numIters):
@@ -114,7 +114,7 @@ class PokerEnv(object):
 
     def showTrainExample(self, example):
         for item in example:
-            print('{} {} {}'.format(item[0], item[1], Card.from_id(item[3])))
+            print('{} {} {}'.format(item[0], item[1], Card.from_id(item[4])))
 
     def getCheckpointFile(self, iteration):
         return 'checkpoint_' + str(iteration) + '.pth.tar'
@@ -147,8 +147,11 @@ class PokerEnv(object):
 
 if __name__ == '__main__':
     pv = PokerEnv()
+    # example = pv.executeEpisode()
+    # # print(example)
+    # pv.showTrainExample(example)
     pv.loadTrainExamples()
-    pv.learn(10)   
+    pv.learn(1s)   
     
     
     

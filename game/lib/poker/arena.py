@@ -35,20 +35,20 @@ class Arena(object):
         # 当前用户为1，使用player1来进行action选择，最后返回用户1（即play1）与play2对抗结果
         curPlayer = 1
         action = 0
-        table = self.game.getInitTable()
+        playerTable = self.game.getInitTable()
         it = 0
-        while self.game.checkGameEnded(curPlayer, action)[curPlayer]==0:
+        while self.game.checkGameEnded(playerTable,curPlayer, action)[0]==0:
             it+=1
             # if verbose:
             #     assert(self.display)
             #     print("Turn ", str(it), "Player ", str(curPlayer))
             #     self.display(board)
-            table = self.game.getTableFrom(curPlayer) 
-            tableStates = self.game.getTableStates(table)
+            playerTable = self.game.getTableFrom(playerTable, curPlayer) 
+            # tableStates = self.game.getTableStates(playerTable)
 
             # 根据上一步的action 得到当前的用户的 action : t_action
-            t_action = players[(curPlayer+1)%2](tableStates, curPlayer, action)  # ？？？？
-            valids = self.game.getValidActions(curPlayer,action)
+            t_action = players[(curPlayer+1)%2](playerTable, curPlayer, action)  # ？？？？
+            valids = self.game.getValidActions(playerTable,curPlayer,action)
 
             # valids[actions]==0 表非法action
             if valids[t_action]==0:
@@ -56,14 +56,14 @@ class Arena(object):
 
             # 确定该action是合法action
             # assert valids[action] >0
-            table, curPlayer = self.game.getNextState(curPlayer, t_action)
+            playerTable, curPlayer = self.game.getNextState(playerTable, curPlayer, t_action)
             action = t_action
         # if verbose:
         #     assert(self.display)
         #     print("Game over: Turn ", str(it), "Result ", str(self.game.getGameEnded(board, 1)))
         #     self.display(board)
         # 返回对手是否win的状态
-        return self.game.checkGameEnded(1, action)
+        return self.game.checkGameEnded(playerTable, 1, action)
 
     def playGames(self, num, verbose=False):
         """
