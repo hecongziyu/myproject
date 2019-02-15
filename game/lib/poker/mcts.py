@@ -17,12 +17,14 @@ class MCTS(object):
         self.Vs = {}        # stores game.getValidMoves for board s
 
 
-    def getActionProb(self, playerTable, cur_play, action, temp=1):
-        states = self.game.getTableStates(playerTable)
+    def getActionProb(self, playerTable, cur_play, action=0, temp=1):
+        cur_play = 0
+        states = self.game.getTableStates(playerTable,action)
+        # print('states --> {}'.format(states))
         # p,v = self.nnet.predict(s)
         valid_actions = self.game.getValidActions(playerTable,cur_play, action)
         # play table , action 上一个player的action
-        for i in range(2):
+        for i in range(20):
             self.search(playerTable, action)
             # r = input(". Continue? [y|n]")
             # if r != "y":
@@ -31,12 +33,12 @@ class MCTS(object):
         s = self.game.stringRepresentation(states)
 
         # 根据MCTS的s,a状态次数，来选择action
-        print('Counts Nsa {}'.format(self.Nsa))
-        print('Counts state s  {}'.format(s))
+        # print('Counts Nsa {}'.format(self.Nsa))
+        # print('Counts state s  {}'.format(s))
 
         counts = [self.Nsa[(s,a)] if (s,a) in self.Nsa else 0 for a in range(self.game.getActionSize())]
 
-        print('couns {}'.format(counts))
+        # print('couns {}'.format(counts))
         # 需修改成树搜索方式，本处暂时不要
         if temp==0:
             bestA = np.argmax(valid_actions)
@@ -55,14 +57,14 @@ class MCTS(object):
 
 
     def search(self, playerTable,action):
-        print('search play table {} action {}'.format(playerTable, action))
+        # print('search play table {} action {}'.format(playerTable, action))
         # print('Qsa {}'.format(self.Qsa))
         # print('Nsa {}'.format(self.Nsa))
         # print('Es {}'.format(self.Es))
         # print('Ps {}'.format(self.Ps))
         # pdb.set_trace()
         
-        states = self.game.getTableStates(playerTable,0)
+        states = self.game.getTableStates(playerTable,action)
         s = self.game.stringRepresentation(states)
 
         # ES  stores game.getGameEnded ended for board s
@@ -103,6 +105,7 @@ class MCTS(object):
         cur_best = -float('inf')
         best_act = -1
 
+        # print('table {} states {} valids actions {}'.format(playerTable,s, valids))
         # pick the action with the highest upper confidence bound
         for a in range(self.game.getActionSize()):
             if valids[a]:
@@ -118,7 +121,7 @@ class MCTS(object):
         a = best_act
 
         next_s, next_player = self.game.getNextState(playerTable,0,a)
-        print('cur table {} next table {}'.format(playerTable, next_s))
+        # print('cur table {} next table {} next action {}'.format(playerTable, next_s, a))
         # next_s = self.game.getTableFrom(playerTable, next_player)
 
         v = self.search(next_s, a)

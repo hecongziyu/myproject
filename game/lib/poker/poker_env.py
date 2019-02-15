@@ -18,10 +18,11 @@ from random import shuffle
 class PokerEnv(object):
     def __init__(self, num_plays=2):
         self.game = PokerGame(play_num=num_plays, card_num=12)     
-        self.nnet = Net(state_num=8, action_num=self.game.getActionSize(), game=self.game)
+        # state num = play table + 最后一个action
+        self.nnet = Net(state_num=9, action_num=self.game.getActionSize(), game=self.game)
         self.folder = 'D:\\PROJECT_TW\\git\\data\\game\\poker'
         self.nnet.load_checkpoint(self.folder,'best.pth.tar')
-        self.pnet = self.nnet.__class__(state_num=8, action_num=self.game.getActionSize(),game=self.game)  # the competitor network
+        self.pnet = self.nnet.__class__(state_num=9, action_num=self.game.getActionSize(),game=self.game)  # the competitor network
         self.mcts = MCTS(game=self.game, nnet=self.nnet, args=None)
         self.curPlayer = 0
         self.skipFirstSelfPlay = False # can be overriden in loadTrainExamples()
@@ -51,6 +52,7 @@ class PokerEnv(object):
                 return [(x[0],x[1],r[x[2]],x[3],x[4]) for x in trainExamples]
 
 
+
     def learn(self, numIters):
         """
         Performs numIters iterations with numEps episodes of self-play in each
@@ -67,6 +69,7 @@ class PokerEnv(object):
                 for eps in range(1):
                     self.mcts = MCTS(self.game, self.nnet, self.args)
                     iterationTrainExamples += self.executeEpisode()
+
                 self.trainExamplesHistory.append(iterationTrainExamples)
 
             if len(self.trainExamplesHistory) > 40:
@@ -80,7 +83,7 @@ class PokerEnv(object):
             # self.saveTrainExamples(i-1)
             # self.showTrainExample(self.trainExamplesHistory[-1])
 
-            if i % 200 == 0:
+            if i % 5 == 0:
                 print('episodeStep {}'.format(i))
                 self.showTrainExample(self.trainExamplesHistory[-1])
 
@@ -151,7 +154,7 @@ if __name__ == '__main__':
     # # print(example)
     # pv.showTrainExample(example)
     pv.loadTrainExamples()
-    pv.learn(1s)   
+    pv.learn(10)   
     
     
     

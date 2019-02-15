@@ -35,15 +35,15 @@ class PokerGame(object):
     def getTableFrom(self, tables, cur_play):
         return [tables[cur_play],tables[(cur_play+1)%2], tables[2]]
 
-    def getTableStates(self, tables, cur_play=0):
-        
+    def getTableStates(self, tables, action, cur_play=0):
+        print('get table states tables {} action {}'.format(tables,action))
         # t = tables[0] + tables[1]
         s1 = [x.to_id() for x in tables[cur_play]]  
         s1 = States.cards_to_states(s1)
         s2 = [x.to_id() for x in tables[2]]  
         s2 = States.cards_to_states(s2)
         s = s1 + s2
-        # print(s1, s2, s)
+        s.append(action)
         return s      
 
 
@@ -68,6 +68,7 @@ class PokerGame(object):
                 valid_num +=1
         if valid_num == 0:
             valid[0] = 1
+        # print('valid actions tables {} cur play {}  action {} valids {}'.format(tables,cur_play, action, valid))
         return valid
 
     # 检测是否结束，如已结束，返回相应状态
