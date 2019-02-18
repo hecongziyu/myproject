@@ -43,16 +43,16 @@ class Arena(object):
             #     assert(self.display)
             #     print("Turn ", str(it), "Player ", str(curPlayer))
             #     self.display(board)
-            playerTable = self.game.getTableFrom(playerTable, curPlayer) 
+            # playerTable = self.game.getTableFrom(playerTable, curPlayer) 
             # tableStates = self.game.getTableStates(playerTable)
 
             # 根据上一步的action 得到当前的用户的 action : t_action
             t_action = players[(curPlayer+1)%2](playerTable, curPlayer, action)  # ？？？？
-            valids = self.game.getValidActions(playerTable,curPlayer,action)
+            valids = self.game.getValidActions(playerTable,0,action)
 
             # valids[actions]==0 表非法action
             if valids[t_action]==0:
-                print("not valid actions {}, valid --> {}, table state --> {}".format(action,valids, table))
+                print("not valid actions {}, valid --> {}, table state --> {}".format(action,valids, playerTable))
 
             # 确定该action是合法action
             # assert valids[action] >0

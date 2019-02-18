@@ -24,7 +24,7 @@ class PokerEnv(object):
         self.folder = 'D:\\PROJECT_TW\\git\\data\\game\\poker'
         self.nnet.load_checkpoint(self.folder,'best.pth.tar')
         self.pnet = self.nnet.__class__(state_num=9, action_num=self.game.getActionSize(),game=self.game)  # the competitor network
-        self.mcts = MCTS(nnet=self.nnet, args=None)
+        self.mcts = MCTS(game=self.game, nnet=self.nnet, args=None)
         self.curPlayer = 0
         self.skipFirstSelfPlay = False # can be overriden in loadTrainExamples()
         self.args = None
@@ -33,26 +33,27 @@ class PokerEnv(object):
 
     def executeEpisode(self):
         trainExamples = []
-        table = self.game.getInitTable()
+        playerTable = self.game.getInitTable()
         self.curPlayer = 0
         episodeStep = 0
         action = 0
-        print('init table {}'.format(table))
+        print('init table {}'.format(playerTable))
         while(True):
             episodeStep +=1
+            # print("first table {} action {} play {}".format(playerTable, action, self.curPlayer))
+            # playerTable = self.game.getTableFrom(playerTable, 0)  
+            # print('in playerTable {}'.format(playerTable))
             temp = int(episodeStep < 5) 
-            playerTable = self.game.getTableFrom(self.curPlayer)
 
-            # r = input("next step . Continue? play {} table {} action {} [y|n]".format(self.curPlayer,playerTable, action))
-            # if r != "y":
-            #     sys.exit()            
-
-            pi = self.mcts.getActionProb(copy.deepcopy(self.game),self.curPlayer, action, temp=temp) #
+            pi = self.mcts.getActionProb(copy.deepcopy(playerTable),self.curPlayer, action, temp=temp) #
+            # print('out playerTable {}'.format(playerTable))
+            # print('pi --> {}'.format(pi))  ????
             action = np.random.choice(len(pi), p=pi)
-            print('play {} table {} selected action {}'.format(self.curPlayer, playerTable ,action))
+            # print("table {} action {} play {}".format(playerTable, action, self.curPlayer))
             trainExamples.append([copy.deepcopy(playerTable),self.curPlayer, pi, action])   #保存状态 
-            self.curPlayer = self.game.getNextState(self.curPlayer, action) 
-            r = self.game.checkGameEnded(self.curPlayer, action)  # 返回得分
+            playerTable, self.curPlayer = self.game.getNextState(playerTable, self.curPlayer, action) 
+            # print('next table {} next play {}  action {}'.format(playerTable, self.curPlayer, action))
+            r = self.game.checkGameEnded(playerTable, self.curPlayer, action)  # 返回得分
             if r[self.curPlayer] != 0:
                 return [(x[0],r[x[1]],x[2],x[3]) for x in trainExamples]
 
@@ -72,7 +73,7 @@ class PokerEnv(object):
                 # deque maxlen超过的将截掉
                 iterationTrainExamples = deque([], maxlen=200000)
                 for eps in range(1):
-                    self.mcts = MCTS(self.nnet, self.args)
+                    self.mcts = MCTS(self.game, self.nnet, self.args)
                     iterationTrainExamples += self.executeEpisode()
 
                 self.trainExamplesHistory.append(iterationTrainExamples)
@@ -104,9 +105,9 @@ class PokerEnv(object):
                 self.nnet.save_checkpoint(folder=self.folder, filename='temp.pth.tar')
                 self.pnet.load_checkpoint(folder=self.folder, filename='temp.pth.tar')
 
-                pmcts = MCTS(self.pnet, self.args)
+                pmcts = MCTS(self.game, self.pnet, self.args)
                 self.nnet.train(trainExamples)
-                nmcts = MCTS(self.nnet, self.args)
+                nmcts = MCTS(self.game, self.nnet, self.args)
 
                 print('PITTING AGAINST PREVIOUS VERSION')
                 arena = Arena(lambda x,y,z: np.argmax(pmcts.getActionProb(x, y, z, temp=0)),
@@ -158,10 +159,10 @@ class PokerEnv(object):
 
 if __name__ == '__main__':
     pv = PokerEnv()
-    example = pv.executeEpisode()
-    # print(example)
+    # example = pv.executeEpisode()
+    # # print(example)
     # pv.showTrainExample(example)
-    # pv.loadTrainExamples()
+    pv.loadTrainExamples()
     pv.learn(10)   
     
     
