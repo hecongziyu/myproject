@@ -37,7 +37,7 @@ class PokerEnv(object):
         self.curPlayer = 0
         episodeStep = 0
         action = 0
-        print('init table {}'.format(table))
+        # print('init table {}'.format(table))
         while(True):
             episodeStep +=1
             temp = int(episodeStep < 5) 
@@ -49,7 +49,7 @@ class PokerEnv(object):
 
             pi = self.mcts.getActionProb(copy.deepcopy(self.game),self.curPlayer, action, temp=temp) #
             action = np.random.choice(len(pi), p=pi)
-            print('play {} table {} selected action {}'.format(self.curPlayer, playerTable ,action))
+            # print('play {} table {} selected action {}'.format(self.curPlayer, playerTable ,action))
             trainExamples.append([copy.deepcopy(playerTable),self.curPlayer, pi, action])   #保存状态 
             self.curPlayer = self.game.getNextState(self.curPlayer, action) 
             r = self.game.checkGameEnded(self.curPlayer, action)  # 返回得分
@@ -88,9 +88,9 @@ class PokerEnv(object):
             # self.saveTrainExamples(i-1)
             # self.showTrainExample(self.trainExamplesHistory[-1])
 
-            self.showTrainExample(self.trainExamplesHistory[0])
+            # self.showTrainExample(self.trainExamplesHistory[0])
 
-            if i % 5 == 0:
+            if i % 200 == 0:
                 print('episodeStep {}'.format(i))
                 self.showTrainExample(self.trainExamplesHistory[-1])
 
@@ -121,6 +121,17 @@ class PokerEnv(object):
                     print('ACCEPTING NEW MODEL')
                     # self.nnet.save_checkpoint(folder=self.folder, filename=self.getCheckpointFile(i))
                     self.nnet.save_checkpoint(folder=self.folder, filename='best.pth.tar')                
+
+
+    def arena_simulate(self):
+        pmcts = MCTS(self.pnet, self.args)
+        nmcts = MCTS(self.nnet, self.args)
+
+        print('PITTING AGAINST PREVIOUS VERSION')
+        arena = Arena(lambda x,y,z: np.argmax(pmcts.getActionProb(x, y, z, temp=0)),
+                    lambda x,y,z: np.argmax(nmcts.getActionProb(x, y, z, temp=0)), self.game)
+        pwins, nwins = arena.playGames(2)
+
 
     def showTrainExample(self, example):
         # print('show example {}'.format(example[0]))
@@ -162,7 +173,8 @@ if __name__ == '__main__':
     # print(example)
     # pv.showTrainExample(example)
     # pv.loadTrainExamples()
-    pv.learn(10)   
+    # pv.learn(100000) 
+    pv.arena_simulate()  
     
     
     

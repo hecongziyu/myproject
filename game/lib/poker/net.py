@@ -96,7 +96,7 @@ class NNetWrapper(object):
         optimizer = optim.Adam(self.nnet.parameters())
         examples = ex.copy()
         print('train examples -->{}'.format(examples[0]))
-        examples = [(self.game.getTableStates(x[0],x[3]),x[1],x[2],x[3])  for x in examples]
+        examples = [(self.game.getTableStatesByTable(x[0],x[3]),x[1],x[2],x[3])  for x in examples]
         for epoch in range(args.epochs):
             print('train epoch {} len {}'.format(epoch, len(examples)))
             self.nnet.train()

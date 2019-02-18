@@ -31,7 +31,6 @@ class MCTS(object):
         # p,v = self.nnet.predict(s)
         valid_actions = game.getValidActions(cur_play, action)
         for i in range(2):
-            # print('begin search play {} action {}'.format(cur_play, action))
             self.search(game,cur_play, action)
             # r = input(". Continue? [y|n]")
             # if r != "y":
@@ -43,9 +42,10 @@ class MCTS(object):
         # print('couns {}'.format(counts))
         # 需修改成树搜索方式，本处暂时不要
         if temp==0:
-            bestA = np.argmax(valid_actions)
-            probs = [0]*len(valid_actions)
+            bestA = np.argmax(counts)
+            probs = [0]*len(counts)
             probs[bestA]=1
+            # print('valid actions {} action prob --> {}'.format(counts, probs))
             return probs
 
         counts = [x**(1./temp) for x in counts]

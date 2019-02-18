@@ -50,6 +50,17 @@ class PokerGame(object):
         return s      
 
 
+    def getTableStatesByTable(self, tables, action):
+        s1 = [x.to_id() for x in tables[0]]
+        s1 =  States.cards_to_states(s1)
+        s2 = [x.to_id() for x in tables[1]]  
+        s2 = States.cards_to_states(s2)
+        s = s1 + s2
+        s.append(action)
+        return s      
+
+
+
     # 得到下一个状态和用户
     def getNextState(self, cur_play, action):
         if action != 0:

@@ -1,4 +1,6 @@
 import numpy as np
+import copy
+from lib.poker.card import Card
 
 class Arena(object):
     """
@@ -8,6 +10,8 @@ class Arena(object):
         """
         Input:
             player 1,2: two functions that takes board as input, return action
+            player 1 : old predict net
+            player 2 : new trained predict net
             game: Game object
             display: a function that takes board as input and prints it (e.g.
                      display in othello/OthelloGame). Is necessary for verbose
@@ -33,22 +37,29 @@ class Arena(object):
         """
         players = [self.player1, self.player2]
         # 当前用户为1，使用player1来进行action选择，最后返回用户1（即play1）与play2对抗结果
-        curPlayer = 1
+        self.game.getInitTable()
+        curPlayer = 0
         action = 0
-        playerTable = self.game.getInitTable()
         it = 0
-        while self.game.checkGameEnded(playerTable,curPlayer, action)[0]==0:
+        result = [0,0]
+
+        while True:
+            result = self.game.checkGameEnded(curPlayer, action)
+            if result[0] != 0:
+                break;
             it+=1
             # if verbose:
             #     assert(self.display)
             #     print("Turn ", str(it), "Player ", str(curPlayer))
             #     self.display(board)
-            # playerTable = self.game.getTableFrom(playerTable, curPlayer) 
+            playerTable = self.game.getTableFrom(curPlayer) 
             # tableStates = self.game.getTableStates(playerTable)
 
             # 根据上一步的action 得到当前的用户的 action : t_action
-            t_action = players[(curPlayer+1)%2](playerTable, curPlayer, action)  # ？？？？
-            valids = self.game.getValidActions(playerTable,0,action)
+            t_action = players[(curPlayer+1)%2](copy.deepcopy(self.game), curPlayer, action)  # ？？？？
+            valids = self.game.getValidActions(curPlayer,action)
+            if verbose:
+                print('arena play {} table {} action {} '.format(curPlayer, playerTable, Card.from_id(t_action)))
 
             # valids[actions]==0 表非法action
             if valids[t_action]==0:
@@ -56,14 +67,17 @@ class Arena(object):
 
             # 确定该action是合法action
             # assert valids[action] >0
-            playerTable, curPlayer = self.game.getNextState(playerTable, curPlayer, t_action)
+            curPlayer = self.game.getNextState(curPlayer, t_action)
             action = t_action
+
         # if verbose:
         #     assert(self.display)
         #     print("Game over: Turn ", str(it), "Result ", str(self.game.getGameEnded(board, 1)))
         #     self.display(board)
         # 返回对手是否win的状态
-        return self.game.checkGameEnded(playerTable, 1, action)
+
+
+        return result
 
     def playGames(self, num, verbose=False):
         """
@@ -80,8 +94,13 @@ class Arena(object):
         num = int(num/2)
         oneWon = 0
         twoWon = 0
-        for _ in range(num):
-            gameResult = self.playGame(verbose=verbose)
+        for i in range(num):
+            if i == num-1:
+                print('arena old new game  ----------')
+                gameResult = self.playGame(verbose=True)
+            else:
+                gameResult = self.playGame(verbose=False)
+
             if gameResult[1]==1:
                 oneWon+=1
             else:    # gameResult[1]==-1:
@@ -91,8 +110,15 @@ class Arena(object):
 
         self.player1, self.player2 = self.player2, self.player1
         
-        for _ in range(num):
-            gameResult = self.playGame(verbose=verbose)
+        for i in range(num):
+            
+            if i == num-1:
+                print('arena switch new game  ----------')
+                gameResult = self.playGame(verbose=True)
+            else:
+                gameResult = self.playGame(verbose=False)
+
+
             # print('game result --> {}'.format(gameResult))
             if gameResult[1]==-1:
                 oneWon+=1                
