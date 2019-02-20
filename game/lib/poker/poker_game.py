@@ -89,27 +89,35 @@ class PokerGame(object):
     def checkGameEnded(self, cur_play, action):
         # print('check game end cur_play -> {} action -> {}'.format(cur_play,action))
         r = [0] * self.play_num
+        # 对方剩余card数
+        
+        
+
         # 检测是否有play的card为0
         for item in range(self.play_num):
             if self.plays[item].get_cards_num() == 0:
                 r = [x-1 for x in r]
                 r[item] = 1
-                return r
+                break;
 
         # 当action为0时，当前用户只有一张时，该用户win，返回
-        if action == 0 and self.plays[cur_play].get_cards_num() == 1:
+        if r[0]==0 and action == 0 and self.plays[cur_play].get_cards_num() == 1:
             r = [x-1 for x in r]
             r[cur_play] = 1
-            return r
 
         # 当action不为0时，当前用户只有一张时，检测该用户最后一张是否大于该action对应的card
-        if action != 0 and self.plays[cur_play].get_cards_num() == 1:
+        if r[0]==0 and  action != 0 and self.plays[cur_play].get_cards_num() == 1:
             if self.plays[cur_play].cards[-1].to_id() > action:
                 r = [x-1 for x in r]
                 r[cur_play] = 1
-                return r
-
         
+        if r[0] != 0:
+            ridx = r.index(-1)
+            nc = round((self.plays[ridx].get_cards_num()) / int(self.card_num/self.play_num),3)
+            # print('c play card number {} {}'.format(self.plays[ridx].get_cards_num(),nc))
+            r = [nc] * self.play_num
+            r[ridx] = -nc
+
         return r
 
     def stringRepresentation(self, states):
@@ -137,7 +145,7 @@ if __name__ == '__main__':
     print('play 0 min action {} tables {}'.format(action, game.getTableFrom(0)))
     print("next states get play 1  tables{}".format(game.getTableFrom(1)))
 
-    game.plays[1].cards.clear()
-    print('check game ended {}'.format(game.checkGameEnded(0,0)))
+    game.plays[0].cards.clear()
+    print('check game ended {}'.format(game.checkGameEnded(1,0)))
     # print(game.getTableFrom(tables,1))
     # print(game.getValidActions(0,5))

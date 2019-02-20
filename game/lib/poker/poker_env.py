@@ -40,7 +40,7 @@ class PokerEnv(object):
         # print('init table {}'.format(table))
         while(True):
             episodeStep +=1
-            temp = int(episodeStep < 5) 
+            temp = int(episodeStep < 3) 
             playerTable = self.game.getTableFrom(self.curPlayer)
 
             # r = input("next step . Continue? play {} table {} action {} [y|n]".format(self.curPlayer,playerTable, action))
@@ -49,7 +49,6 @@ class PokerEnv(object):
 
             pi = self.mcts.getActionProb(copy.deepcopy(self.game),self.curPlayer, action, temp=temp) #
             action = np.random.choice(len(pi), p=pi)
-            # print('play {} table {} selected action {}'.format(self.curPlayer, playerTable ,action))
             trainExamples.append([copy.deepcopy(playerTable),self.curPlayer, pi, action])   #保存状态 
             self.curPlayer = self.game.getNextState(self.curPlayer, action) 
             r = self.game.checkGameEnded(self.curPlayer, action)  # 返回得分
@@ -130,8 +129,9 @@ class PokerEnv(object):
         print('PITTING AGAINST PREVIOUS VERSION')
         arena = Arena(lambda x,y,z: np.argmax(pmcts.getActionProb(x, y, z, temp=0)),
                     lambda x,y,z: np.argmax(nmcts.getActionProb(x, y, z, temp=0)), self.game)
-        pwins, nwins = arena.playGames(2)
 
+        pwins, nwins = arena.playGames(2)
+        print('new mcts nsa --> {}'.format(nmcts.Nsa))
 
     def showTrainExample(self, example):
         # print('show example {}'.format(example[0]))
@@ -173,8 +173,8 @@ if __name__ == '__main__':
     # print(example)
     # pv.showTrainExample(example)
     # pv.loadTrainExamples()
-    # pv.learn(100000) 
-    pv.arena_simulate()  
+    pv.learn(100000) 
+    # pv.arena_simulate()  
     
     
     

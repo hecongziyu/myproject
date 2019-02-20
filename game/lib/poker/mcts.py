@@ -30,13 +30,14 @@ class MCTS(object):
         # print('states --> {}'.format(states))
         # p,v = self.nnet.predict(s)
         valid_actions = game.getValidActions(cur_play, action)
-        for i in range(2):
-            self.search(game,cur_play, action)
+        for i in range(40):
+            self.search(copy.deepcopy(game),cur_play, action)
             # r = input(". Continue? [y|n]")
             # if r != "y":
             #     sys.exit()            
 
         s = game.stringRepresentation(states)
+
         counts = [self.Nsa[(s,a)] if (s,a) in self.Nsa else 0 for a in range(game.getActionSize())]
 
         # print('couns {}'.format(counts))
@@ -50,6 +51,7 @@ class MCTS(object):
 
         counts = [x**(1./temp) for x in counts]
         probs = [x/float(sum(counts)) for x in counts]
+        # print('temp -> {} counts -> {} probs -> {}'.format(temp, counts, probs))
         return probs
 
 
@@ -69,11 +71,12 @@ class MCTS(object):
         if s not in self.Es:
             self.Es[s] = game.checkGameEnded(cur_play, action)
 
-        if self.Es[s][0]!=0:
+        if self.Es[s][cur_play] != 0:
             # terminal node
-            return self.Es[s][0]
+            return -self.Es[s][cur_play]
 
         # PS stores initial policy (returned by neural net)
+
 
         if s not in self.Ps:
 
@@ -89,7 +92,7 @@ class MCTS(object):
                 # 如果所有有效移动都被屏蔽，则使所有有效移动的可能性相等
                 # NB! All valid moves may be masked if either your NNet architecture is insufficient or you've get overfitting or something else.
                 # If you have got dozens or hundreds of these messages you should pay attention to your NNet and/or training process.   
-                print("All valid moves were masked, do workaround.")
+                # print("All valid moves were masked, do workaround.")
                 self.Ps[s] = self.Ps[s] + valids
                 self.Ps[s] /= np.sum(self.Ps[s])
 
@@ -97,7 +100,7 @@ class MCTS(object):
             # Ns stores #times board s was visited
             self.Ns[s] = 0
             #  ？？？ why return -v
-            return v
+            return -v
 
         valids = self.Vs[s]
         cur_best = -float('inf')
@@ -108,8 +111,10 @@ class MCTS(object):
         for a in range(game.getActionSize()):
             if valids[a]:
                 if (s,a) in self.Qsa:
+                    # u = v + (prob a * sqrt(s number / (1 + s,a number))
                     u = self.Qsa[(s,a)] + 1*self.Ps[s][a]*math.sqrt(self.Ns[s])/(1+self.Nsa[(s,a)])
                 else:
+                    # u = prob a * sqrt(s number + 0.001)
                     u = 1*self.Ps[s][a]*math.sqrt(self.Ns[s] + EPS)     # Q = 0 ?
 
                 if u > cur_best:
@@ -125,7 +130,8 @@ class MCTS(object):
         v = self.search(game,next_player, a)
 
         if (s,a) in self.Qsa:
-            self.Qsa[(s,a)] = (self.Nsa[(s,a)]*self.Qsa[(s,a)] + v)/(self.Nsa[(s,a)]+1)
+            # v(new) = (s,a number * v(old) + v(current)) / (s,a number + 1)
+            self.Qsa[(s,a)] = (self.Nsa[(s,a)]*self.Qsa[(s,a)] + v)/(self.Nsa[(s,a)]+1)  # 计算平均V值 
             self.Nsa[(s,a)] += 1
 
         else:

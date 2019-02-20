@@ -96,12 +96,13 @@ class Arena(object):
         twoWon = 0
         for i in range(num):
             if i == num-1:
-                print('arena old new game  ----------')
+                print('arena old new game  play 0 --> trained new net ----------')
                 gameResult = self.playGame(verbose=True)
+                print('game result {}'.format(gameResult))
             else:
                 gameResult = self.playGame(verbose=False)
 
-            if gameResult[1]==1:
+            if gameResult[1]>0:
                 oneWon+=1
             else:    # gameResult[1]==-1:
                 twoWon+=1
@@ -113,14 +114,15 @@ class Arena(object):
         for i in range(num):
             
             if i == num-1:
-                print('arena switch new game  ----------')
+                print('arena switch new game  play 0 --> trained old net----------')
                 gameResult = self.playGame(verbose=True)
+                print('game result {}'.format(gameResult))
             else:
                 gameResult = self.playGame(verbose=False)
 
 
             # print('game result --> {}'.format(gameResult))
-            if gameResult[1]==-1:
+            if gameResult[1]<0:
                 oneWon+=1                
             else:  # gameResult[1]==1:
                 twoWon+=1
