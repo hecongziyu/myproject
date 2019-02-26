@@ -132,20 +132,21 @@ class PokerGame(object):
         # return s
 
 if __name__ == '__main__':
-    game = PokerGame(play_num=2, card_num=12)
+    # Set-ExecutionPolicy RemoteSigned
+    game = PokerGame(play_num=2, card_num=24)
     tables = game.getInitTable()
     print("init tables {}".format(tables))
-    print("get play 0  tables{}".format(game.getTableFrom(0)))
-    print("get play 1  tables{}".format(game.getTableFrom(1)))
-    print('get play 0 valid actions {}'.format(game.getValidActions(0,0)))
-    print('get play 1 valid actions {}'.format(game.getValidActions(1,0)))
+    # print("get play 0  tables{}".format(game.getTableFrom(0)))
+    # print("get play 1  tables{}".format(game.getTableFrom(1)))
+    # print('get play 0 valid actions {}'.format(game.getValidActions(0,0)))
+    # print('get play 1 valid actions {}'.format(game.getValidActions(1,0)))
 
-    action = np.where(game.getValidActions(0,0))[0][0]
-    game.getNextState(0,action)
-    print('play 0 min action {} tables {}'.format(action, game.getTableFrom(0)))
-    print("next states get play 1  tables{}".format(game.getTableFrom(1)))
+    # action = np.where(game.getValidActions(0,0))[0][0]
+    # game.getNextState(0,action)
+    # print('play 0 min action {} tables {}'.format(action, game.getTableFrom(0)))
+    # print("next states get play 1  tables{}".format(game.getTableFrom(1)))
 
-    game.plays[0].cards.clear()
-    print('check game ended {}'.format(game.checkGameEnded(1,0)))
+    # game.plays[0].cards.clear()
+    # print('check game ended {}'.format(game.checkGameEnded(1,0)))
     # print(game.getTableFrom(tables,1))
     # print(game.getValidActions(0,5))
