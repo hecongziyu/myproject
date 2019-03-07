@@ -8,10 +8,10 @@ class States(object):
     @staticmethod
     def cards_to_states(cards, states_number=16, split_number=1):
         cardmap = np.array([True]*states_number)
+        cards = [x-1 for x in cards]
         cardmap[cards] = False
         cardmap = np.hsplit(cardmap,4)
         states = [bitarray(x.tolist()) for x in cardmap]
-        
         states = [int.from_bytes(x.tobytes(),byteorder='big') for x in states]
         return states
         

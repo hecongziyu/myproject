@@ -1,6 +1,7 @@
 import numpy as np
 import copy
 from lib.poker.card import Card
+import time
 
 class Arena(object):
     """
@@ -26,6 +27,7 @@ class Arena(object):
         self.display = display
 
     def playGame(self, verbose=False):
+        begin_time = time.time()
         """
         Executes one episode of a game.
 
@@ -42,7 +44,7 @@ class Arena(object):
         action = 0
         it = 0
         result = [0,0]
-
+        total_play_time = 0
         while True:
             result = self.game.checkGameEnded(curPlayer, action)
             if result[0] != 0:
@@ -56,7 +58,10 @@ class Arena(object):
             # tableStates = self.game.getTableStates(playerTable)
 
             # 根据上一步的action 得到当前的用户的 action : t_action
+            play_time = time.time()
             t_action = players[(curPlayer+1)%2](copy.deepcopy(self.game), curPlayer, action)  # ？？？？
+            total_play_time += time.time() - play_time
+
             valids = self.game.getValidActions(curPlayer,action)
             if verbose:
                 print('arena play {} table {} action {} '.format(curPlayer, playerTable, Card.from_id(t_action)))
@@ -75,8 +80,8 @@ class Arena(object):
         #     print("Game over: Turn ", str(it), "Result ", str(self.game.getGameEnded(board, 1)))
         #     self.display(board)
         # 返回对手是否win的状态
-
-
+        if verbose:
+            print('game over time {} it {} play time {}'.format(time.time()-begin_time,it, total_play_time))
         return result
 
     def playGames(self, num, verbose=False):

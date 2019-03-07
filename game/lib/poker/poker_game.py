@@ -5,6 +5,7 @@ from lib.poker.play import Play
 from lib.poker.deck import Deck
 from lib.poker.card import Card
 from lib.poker.state import States
+from lib.poker.action import Action
 import numpy as np
 
 class PokerGame(object):
@@ -14,9 +15,12 @@ class PokerGame(object):
         self.play_num = play_num
         self.card_num = card_num
         self.deck = Deck(cheat=True, cheat_card_ids=list(range(1,self.card_num+1)))
+        self.action_map_id, self.action_map_state = Action.get_correct_actions(self.deck.deck, self.card_num, self.play_num)
+
+    
 
     def getActionSize(self):
-        return self.card_num + 1
+        return len(self.action_map_id) + 1
 
     # return [play_1_cards, play_2_cards, public_cards]
     def getInitTable(self):
@@ -40,49 +44,51 @@ class PokerGame(object):
     def getTableStates(self, cur_play,action):
         # print('get table states tables {} action {}'.format(tables,action))
         # t = tables[0] + tables[1]
-
-        s1 = [x.to_id() for x in self.plays[cur_play].cards]  
-        s1 = States.cards_to_states(s1)
-        s2 = [x.to_id() for x in self.public_cards]  
-        s2 = States.cards_to_states(s2)
-        s = s1 + s2
-        s.append(action)
-        return s      
+        tables = [self.plays[cur_play].cards, self.public_cards]
+        return  self.getTableStatesByTable(tables, action)
 
 
     def getTableStatesByTable(self, tables, action):
         s1 = [x.to_id() for x in tables[0]]
-        s1 =  States.cards_to_states(s1)
+        s1 =  States.cards_to_states(s1, states_number=24)
         s2 = [x.to_id() for x in tables[1]]  
-        s2 = States.cards_to_states(s2)
+        s2 = States.cards_to_states(s2, states_number=24)
         s = s1 + s2
         s.append(action)
         return s      
 
-
+    # 根据card rank比较
+    def __remove_cards_from_self__(self,cur_play, card):
+        remove_card = None
+        for c in self.plays[cur_play].cards:
+            if c.rank == card.rank and c.suit == card.suit:
+                remove_card = c
+                self.public_cards.append(c)
+                break
+        if remove_card is not None:
+            self.plays[cur_play].cards.remove(remove_card)
 
     # 得到下一个状态和用户
     def getNextState(self, cur_play, action):
         if action != 0:
-            card = Card.from_id(action)
-            if card in self.plays[cur_play].cards:
-                self.plays[cur_play].cards.remove(card)
-                self.public_cards.append(card)
+            cards = Action.get_action_cards(action,self.action_map_id,self.plays[cur_play].cards)
+            # print('next state cur_play {} action {} cards {}'.format(cur_play, action, cards))
+            for c in cards:
+                self.__remove_cards_from_self__(cur_play,c)
         cur_play = (cur_play+1)%self.play_num
         return cur_play
 
     def getValidActions(self,cur_play, action):
-        valid = [0] * self.getActionSize()
-        valid_num = 0
-        # print('check valid action {} cards {}'.format(action, self.plays[player].cards))
-        for item in self.plays[cur_play].cards:
-            if item.to_id() > action:
-                valid[item.to_id()] = 1
-                valid_num +=1
-        if valid_num == 0:
-            valid[0] = 1
-        # print('valid actions tables {} cur play {}  action {} valids {}'.format(tables,cur_play, action, valid))
-        return valid
+        valids = np.zeros(self.getActionSize(),dtype=np.byte)
+        # if action != 0:
+        pv = Action.play_valid_actions(self.plays[cur_play].cards, 
+            action, 
+            self.action_map_id)
+        valids[pv] = 1
+        if np.sum(valids) == 0:
+            valids[0] = 1
+        return valids
+        
 
     # 检测是否结束，如已结束，返回相应状态
     # 参数 cur_play, action(上一个play的action)
@@ -135,15 +141,25 @@ if __name__ == '__main__':
     # Set-ExecutionPolicy RemoteSigned
     game = PokerGame(play_num=2, card_num=24)
     tables = game.getInitTable()
+    tablesIds = [[x.to_id() for x in tb] for tb in tables]
     print("init tables {}".format(tables))
+    print('init {}'.format(game.action_map_state))
+    print('init {}'.format(game.action_map_id))
+    # print('deck {}'.format(game.deck.deck))
+    # print('action {}'.format(Action.get_correct_actions(game.deck.deck,24,2)))
+    print('play 0 valid action {}'.format(game.getValidActions(0,0)))
+    # print(game.deck.deck)
+    # game.getNextState(0,3)
     # print("get play 0  tables{}".format(game.getTableFrom(0)))
     # print("get play 1  tables{}".format(game.getTableFrom(1)))
     # print('get play 0 valid actions {}'.format(game.getValidActions(0,0)))
     # print('get play 1 valid actions {}'.format(game.getValidActions(1,0)))
 
-    # action = np.where(game.getValidActions(0,0))[0][0]
+    # action = np.where(game.getValidActions(0,13))[0][0]
+    # print(action)
     # game.getNextState(0,action)
     # print('play 0 min action {} tables {}'.format(action, game.getTableFrom(0)))
+    print('---> {}'.format(game.getTableStates(0,1)))
     # print("next states get play 1  tables{}".format(game.getTableFrom(1)))
 
     # game.plays[0].cards.clear()

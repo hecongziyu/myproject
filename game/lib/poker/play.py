@@ -11,6 +11,7 @@ class Play(object):
     
     def set_cards(self, cards):
         self.cards = cards
+        self.cards.sort(key=lambda x: x.rank)
         self.status = 'playing'
 
 

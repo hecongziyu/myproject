@@ -3,6 +3,7 @@ import numpy as np
 import sys
 import pdb
 import copy
+import time
 EPS = 1e-8
 
 class MCTS(object):
@@ -20,7 +21,9 @@ class MCTS(object):
 
     def getActionProbByRandom(self,game,cur_play,action, temp=1):
         validActions = game.getValidActions(cur_play, action)
-        bestA = np.argmax(validActions)
+        bestA = np.where(validActions)[0]
+        blen = len(bestA)
+        bestA = bestA[np.random.randint(blen)]
         probs = [0]*len(validActions)
         probs[bestA]=1
         return probs        
@@ -30,12 +33,13 @@ class MCTS(object):
         # print('states --> {}'.format(states))
         # p,v = self.nnet.predict(s)
         valid_actions = game.getValidActions(cur_play, action)
+        begin_time = time.time()
         for i in range(40):
             self.search(copy.deepcopy(game),cur_play, action)
             # r = input(". Continue? [y|n]")
             # if r != "y":
             #     sys.exit()            
-
+        # print('mtcs tree time --> {}'.format(time.time()-begin_time))
         s = game.stringRepresentation(states)
 
         counts = [self.Nsa[(s,a)] if (s,a) in self.Nsa else 0 for a in range(game.getActionSize())]

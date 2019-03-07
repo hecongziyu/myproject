@@ -9,7 +9,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 import os
 from easydict import EasyDict as edict
-
+import time
 np.random.seed(1)
 torch.manual_seed(1)
 
@@ -63,12 +63,15 @@ class NNetWrapper(object):
         self.nnet = Net(self.state_num, self.action_num)
 
     def predict(self,state):
+        # begin_time = time.time()
         x = Variable(torch.unsqueeze(torch.FloatTensor(state), 0))
         self.nnet.eval()
         with torch.no_grad():
             p,v = self.nnet.forward(x)
         # log softmax 为负，采用torch.exp 转为正数
-        return torch.exp(p).data.cpu().numpy()[0],v.data.cpu().numpy()[0]
+        value = torch.exp(p).data.cpu().numpy()[0],v.data.cpu().numpy()[0]
+        # print('predict time --> {} {}'.format(begin_time, time.time()))
+        return value
 
     def save_checkpoint(self, folder='checkpoint', filename='checkpoint.pth.tar'):
         filepath = os.path.join(folder, filename)
@@ -93,12 +96,14 @@ class NNetWrapper(object):
             self.nnet.load_state_dict(checkpoint['state_dict'])
 
     def train(self, ex):
+        begin_time = time.time()
         optimizer = optim.Adam(self.nnet.parameters())
         examples = ex.copy()
-        print('train examples -->{}'.format(examples[0]))
+        print('train examples -->{} \n size -->{}'.format(examples[0], len(examples)))
         examples = [(self.game.getTableStatesByTable(x[0],x[3]),x[1],x[2],x[3])  for x in examples]
+        all_loss = 0
+        train_num = 0
         for epoch in range(args.epochs):
-            print('train epoch {} len {}'.format(epoch, len(examples)))
             self.nnet.train()
             batch_idx = 0
             while batch_idx < int(len(examples)/args.batch_size):
@@ -115,11 +120,12 @@ class NNetWrapper(object):
                 l_pi = self.loss_pi(target_pis, out_pi)
                 l_v = self.loss_v(target_vs, out_v)
                 total_loss = l_pi + l_v
-
                 optimizer.zero_grad()
                 total_loss.backward()
                 optimizer.step()
-                print('total loss {}'.format(total_loss))
+                all_loss = all_loss + total_loss
+                train_num += 1
+        print('loss {}  time {}'.format(all_loss/train_num, time.time()-begin_time))
 
 
     def loss_pi(self, targets, outputs):

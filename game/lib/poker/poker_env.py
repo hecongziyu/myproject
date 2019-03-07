@@ -16,9 +16,10 @@ from pickle import Pickler, Unpickler
 from random import shuffle
 import copy
 
+
 class PokerEnv(object):
     def __init__(self, num_plays=2):
-        self.game = PokerGame(play_num=num_plays, card_num=12)     
+        self.game = PokerGame(play_num=num_plays, card_num=24)     
         # state num = play table + 最后一个action
         self.nnet = Net(state_num=9, action_num=self.game.getActionSize(), game=self.game)
         self.folder = 'D:\\PROJECT_TW\\git\\data\\game\\poker'
@@ -42,13 +43,16 @@ class PokerEnv(object):
             episodeStep +=1
             temp = int(episodeStep < 3) 
             playerTable = self.game.getTableFrom(self.curPlayer)
-
-            # r = input("next step . Continue? play {} table {} action {} [y|n]".format(self.curPlayer,playerTable, action))
+            # r = input("next step . Continue? play {} table {} action {} [y|n]".format(
+            #     self.curPlayer,
+            #     playerTable, 
+            #     action))
             # if r != "y":
-            #     sys.exit()            
-
+            #     sys.exit()    
+            
             pi = self.mcts.getActionProb(copy.deepcopy(self.game),self.curPlayer, action, temp=temp) #
             action = np.random.choice(len(pi), p=pi)
+
             trainExamples.append([copy.deepcopy(playerTable),self.curPlayer, pi, action])   #保存状态 
             self.curPlayer = self.game.getNextState(self.curPlayer, action) 
             r = self.game.checkGameEnded(self.curPlayer, action)  # 返回得分
@@ -66,7 +70,8 @@ class PokerEnv(object):
         only if it wins >= updateThreshold fraction of games.
         """
         for i in range(1,numIters+1):
-            
+
+            start_time = time.time()
             if not self.skipFirstSelfPlay or i>1:
                 # deque maxlen超过的将截掉
                 iterationTrainExamples = deque([], maxlen=200000)
@@ -89,8 +94,9 @@ class PokerEnv(object):
 
             # self.showTrainExample(self.trainExamplesHistory[0])
 
-            if i % 200 == 0:
-                print('episodeStep {}'.format(i))
+            if i % 100 == 0:
+                print('episodeStep {}, time {}'.format(i, (time.time()-start_time)/100))
+                
                 self.showTrainExample(self.trainExamplesHistory[-1])
 
                 trainExamples = []
@@ -108,11 +114,12 @@ class PokerEnv(object):
                 nmcts = MCTS(self.nnet, self.args)
 
                 print('PITTING AGAINST PREVIOUS VERSION')
+                begin_time = time.time()
                 arena = Arena(lambda x,y,z: np.argmax(pmcts.getActionProb(x, y, z, temp=0)),
                               lambda x,y,z: np.argmax(nmcts.getActionProb(x, y, z, temp=0)), self.game)
-                pwins, nwins = arena.playGames(40)
+                pwins, nwins = arena.playGames(30)
 
-                print('NEW/PREV WINS : %d / %d ;' % (nwins, pwins))
+                print('NEW/PREV WINS : %d / %d ; time : %f' % (nwins, pwins, time.time()-begin_time))
                 if pwins+nwins > 0 and float(nwins)/(pwins+nwins) < 0.6:
                     print('REJECTING NEW MODEL')
                     self.nnet.load_checkpoint(folder=self.folder, filename='temp.pth.tar')
@@ -125,18 +132,19 @@ class PokerEnv(object):
     def arena_simulate(self):
         pmcts = MCTS(self.pnet, self.args)
         nmcts = MCTS(self.nnet, self.args)
-
+        begin_time = time.time()
         print('PITTING AGAINST PREVIOUS VERSION')
         arena = Arena(lambda x,y,z: np.argmax(pmcts.getActionProb(x, y, z, temp=0)),
                     lambda x,y,z: np.argmax(nmcts.getActionProb(x, y, z, temp=0)), self.game)
 
         pwins, nwins = arena.playGames(2)
-        print('new mcts nsa --> {}'.format(nmcts.Nsa))
+        # print('new mcts nsa --> {} time --> {}'.format(nmcts.Nsa, time.time()-begin_time))
+        print('time --> {}'.format(time.time()-begin_time))
 
     def showTrainExample(self, example):
         # print('show example {}'.format(example[0]))
         for item in example:
-            print('play {}: {} {}'.format(item[1],item[0],Card.from_id(item[3])))
+            print('play {}: {} {}'.format(item[1],item[0],item[3]))
 
     def getCheckpointFile(self, iteration):
         return 'checkpoint_' + str(iteration) + '.pth.tar'
@@ -169,7 +177,9 @@ class PokerEnv(object):
 
 if __name__ == '__main__':
     pv = PokerEnv()
+    # begin_time = time.time()
     example = pv.executeEpisode()
+    # print('step time {}'.format(time.time()-begin_time))
     # print(example)
     # pv.showTrainExample(example)
     # pv.loadTrainExamples()
