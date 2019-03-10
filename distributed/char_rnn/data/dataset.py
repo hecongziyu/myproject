@@ -18,8 +18,8 @@ class TextConverter(object):
             text_path: txt file path.
             max_vocab: maximum number of words.
         """
-
-        with open(text_path, 'r') as f:
+        print('read file name --> {}'.format(text_path))
+        with open(text_path, 'r', encoding='utf-8') as f:
             text = f.read()
         text = text.replace('\n', ' ').replace('\r', ' ').replace('，', ' ').replace('。', ' ')
         vocab = set(text)
@@ -75,7 +75,7 @@ class TextConverter(object):
 class TextDataset(object):
     def __init__(self, text_path, n_step, arr_to_idx):
 
-        with open(text_path, 'r') as f:
+        with open(text_path, 'r',encoding='utf-8') as f:
             text = f.read()
         text = text.replace('\n', ' ').replace('\r', ' ').replace('，', ' ').replace('。', ' ')
         num_seq = int(len(text) / n_step)

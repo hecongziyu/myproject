@@ -11,10 +11,10 @@ class DefaultConfig(object):
     model = 'CharRNN'
 
     # Dataset.
-    txt = './dataset/poetry.txt'
+    txt = './dataset/jay.txt'
     len = 20
     max_vocab = 8000
-    begin = '天青色等烟雨'  # begin word of text
+    begin = '想要有直升机'  # begin word of text
     predict_len = 50  # predict length
 
     # Store result and save models.
@@ -38,9 +38,9 @@ class DefaultConfig(object):
     dropout = 0.5
 
     # Model hyperparameters.
-    use_gpu = True  # use GPU or not
+    use_gpu = False  # use GPU or not
     ctx = 0  # running on which cuda device
-    batch_size = 128  # batch size
+    batch_size = 1  # batch size
     num_workers = 4  # how many workers for loading data
     max_epoch = 200
     lr = 1e-3  # initial learning rate

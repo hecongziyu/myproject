@@ -7,8 +7,9 @@ from copy import deepcopy
 
 import numpy as np
 import torch
-from mxtorch import meter
-from mxtorch.trainer import Trainer, ScheduledOptim
+import os
+# from mxtorch import meter
+# from mxtorch.trainer import Trainer, ScheduledOptim
 from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -18,6 +19,8 @@ import models
 from config import opt
 from data import TextDataset, TextConverter
 
+# https://www.imooc.com/article/32412
+# https://github.com/pytorch/ignite
 
 def get_data(convert):
     dataset = TextDataset(opt.txt, opt.len, convert.text_to_arr)
@@ -25,13 +28,21 @@ def get_data(convert):
 
 
 def get_model(convert):
-    model = getattr(models, opt.model)(convert.vocab_size,
+    # model = getattr(models, opt.model)(convert.vocab_size,
+    #                                    opt.embed_dim,
+    #                                    opt.hidden_size,
+    #                                    opt.num_layers,
+    #                                    opt.dropout)
+    print('----> get model')
+    model = models.CharRNN(convert.vocab_size,
                                        opt.embed_dim,
                                        opt.hidden_size,
                                        opt.num_layers,
                                        opt.dropout)
+  
     if opt.use_gpu:
         model = model.cuda()
+    print(model)
     return model
 
 
@@ -41,7 +52,8 @@ def get_loss(score, label):
 
 def get_optimizer(model):
     optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr)
-    return ScheduledOptim(optimizer)
+    return optimizer
+    # return ScheduledOptim(optimizer)
 
 
 def pick_top_n(preds, top_n=5):
@@ -53,53 +65,53 @@ def pick_top_n(preds, top_n=5):
     return c
 
 
-class CharRNNTrainer(Trainer):
+class CharRNNTrainer():
     def __init__(self, convert):
         self.convert = convert
-
-        model = get_model(convert)
-        criterion = get_loss
-        optimizer = get_optimizer(model)
-        super().__init__(model, criterion, optimizer)
-        self.config += ('text: ' + opt.txt + '\n' + 'train text length: ' + str(opt.len) + '\n')
+        self.n_iter = 0
+        self.model = get_model(convert)
+        self.criterion = get_loss
+        self.optimizer = get_optimizer(self.model)
+        # super().__init__(model, criterion, optimizer)
+        self.config = ('text: ' + opt.txt + '\n' + 'train text length: ' + str(opt.len) + '\n')
         self.config += ('predict text length: ' + str(opt.predict_len) + '\n')
 
-        self.metric_meter['loss'] = meter.AverageValueMeter()
+        # self.metric_meter['loss'] = meter.AverageValueMeter()
 
     def train(self, kwargs):
-        self.reset_meter()
+        # self.reset_meter()
+        current_loss = 10
         self.model.train()
         train_data = kwargs['train_data']
-        for data in tqdm(train_data):
+
+        # for data in tqdm(train_data):
+        for data in train_data:
             x, y = data
+            x = x.long()
             y = y.long()
-            if opt.use_gpu:
-                x = x.cuda()
-                y = y.cuda()
+            # print('input x --> {}'.format(x))
+            # print('input y --> {}'.format(y))
             x, y = Variable(x), Variable(y)
-
-            # Forward.
             score, _ = self.model(x)
+            # print('score --> {} size {}'.format(score, score.size()))
+            
             loss = self.criterion(score, y)
-
-            # Backward.
             self.optimizer.zero_grad()
             loss.backward()
-            # Clip gradient.
             nn.utils.clip_grad_norm(self.model.parameters(), 5)
             self.optimizer.step()
+            print('loss --> {}'.format(loss))
+            if loss < current_loss:
+                current_loss = loss
+                self.save_state_dict(opt.load_model)
 
-            self.metric_meter['loss'].add(loss.data[0])
-
-            # Update to tensorboard.
             if (self.n_iter + 1) % opt.plot_freq == 0:
-                self.writer.add_scalar('perplexity', np.exp(self.metric_meter['loss'].value()[0]), self.n_plot)
-                self.n_plot += 1
-
+                print('loss-->{}'.format(loss));
+                # self.n_plot += 1
             self.n_iter += 1
 
         # Log the train metrics to dict.
-        self.metric_log['perplexity'] = np.exp(self.metric_meter['loss'].value()[0])
+        # self.metric_log['perplexity'] = np.exp(self.metric_meter['loss'].value()[0])
 
     def test(self, kwargs):
         """Set beginning words and predicted length, using model to generate texts.
@@ -155,7 +167,14 @@ class CharRNNTrainer(Trainer):
             f.write(text)
 
     def load_state_dict(self, checkpoints):
-        self.model.load_state_dict(torch.load(checkpoints))
+        if os.path.exists(checkpoints):
+            self.model.load_state_dict(torch.load(checkpoints))
+
+    def save_state_dict(self, checkpoints):
+        if not os.path.exists('./checkpoints'):
+            os.mkdir('./checkpoints')
+        print('save model  {}', checkpoints)
+        torch.save(self.model.state_dict(),checkpoints)       
 
     def get_best_model(self):
         if self.metric_log['perplexity'] < self.best_metric:
@@ -165,14 +184,20 @@ class CharRNNTrainer(Trainer):
 
 def train(**kwargs):
     opt._parse(kwargs)
-    torch.cuda.set_device(opt.ctx)
+    # torch.cuda.set_device(opt.ctx)
     convert = TextConverter(opt.txt, max_vocab=opt.max_vocab)
     train_data = get_data(convert)
     char_rnn_trainer = CharRNNTrainer(convert)
-    char_rnn_trainer.fit(train_data=train_data,
-                         epochs=opt.max_epoch,
-                         begin=opt.begin,
-                         predict_len=opt.predict_len)
+    # print(train_data)
+    # for data in train_data:
+    #     x,y = data
+    kwarg = {"train_data":train_data, "epchos":opt.max_epoch, "begin":opt.begin,"predict_len":opt.predict_len}
+    char_rnn_trainer.load_state_dict(opt.load_model)
+    char_rnn_trainer.train(kwarg)
+    # char_rnn_trainer.fit(train_data=train_data,
+    #                      epochs=opt.max_epoch,
+    #                      begin=opt.begin,
+    #                      predict_len=opt.predict_len)
 
 
 def predict(**kwargs):
