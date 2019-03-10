@@ -19,7 +19,7 @@ class DefaultConfig(object):
 
     # Store result and save models.
     result_file = 'result.txt'
-    save_file = './checkpoints/'
+    save_file = '/checkpoints/'
     save_freq = 30  # save model every N epochs
     save_best = True
 
@@ -40,11 +40,18 @@ class DefaultConfig(object):
     # Model hyperparameters.
     use_gpu = False  # use GPU or not
     ctx = 0  # running on which cuda device
-    batch_size = 1  # batch size
+    batch_size = 64  # batch size
     num_workers = 4  # how many workers for loading data
     max_epoch = 200
-    lr = 1e-3  # initial learning rate
+    lr = 1e-4  # initial learning rate
     weight_decay = 1e-4
+
+
+    backend = 'gloo'
+    init-method = 'tcp://127.0.0.1:23456'
+    world-size = 2
+
+
 
     def _parse(self, kwargs):
         for k, v in kwargs.items():

@@ -36,7 +36,7 @@ class CharRNN(nn.Module):
         # word_embed = word_embed.permute(1, 0, 2)  # (len, batch, embed)
         out, h0 = self.rnn(word_embed)  # (len, batch, hidden)
         le, mb, hd = out.shape
-        out = out.view(le * mb, hd)
+        out = out.contiguous().view(le * mb, hd)
         out = self.project(out)
         out = out.view(le, mb, -1)
         out = out.permute(1, 0, 2).contiguous()  # (batch, len, hidden)

@@ -191,9 +191,11 @@ def train(**kwargs):
     # print(train_data)
     # for data in train_data:
     #     x,y = data
-    kwarg = {"train_data":train_data, "epchos":opt.max_epoch, "begin":opt.begin,"predict_len":opt.predict_len}
     char_rnn_trainer.load_state_dict(opt.load_model)
-    char_rnn_trainer.train(kwarg)
+    for _ in range(100000):
+        train_data = get_data(convert)
+        kwarg = {"train_data":train_data, "epchos":opt.max_epoch, "begin":opt.begin,"predict_len":opt.predict_len}
+        char_rnn_trainer.train(kwarg)
     # char_rnn_trainer.fit(train_data=train_data,
     #                      epochs=opt.max_epoch,
     #                      begin=opt.begin,
