@@ -20,21 +20,21 @@ class CharRNN(nn.Module):
         self.word_to_vec = nn.Embedding(num_classes, embed_dim)
         print('hidden size {} num layers {} drop out {}'.format(hidden_size, num_layers, dropout))
         # self.rnn = nn.GRU(embed_dim, hidden_size, num_layers, dropout)
-        self.rnn = nn.LSTM(embed_dim, hidden_size, num_layers, batch_first=True, dropout=dropout)
+        self.rnn = nn.GRU(embed_dim, hidden_size, num_layers, batch_first=True, dropout=dropout)
         self.project = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x, hs=None):
         batch = x.shape[0]
-        # if hs is None:
-        #     hs = Variable(
-        #         torch.zeros(self.num_layers, batch, self.hidden_size))
-        #     if opt.use_gpu:
-        #         hs = hs.cuda()
+        if hs is None:
+            hs = Variable(
+                torch.zeros(self.num_layers, batch, self.hidden_size))
+            if opt.use_gpu:
+                hs = hs.cuda()
 
         word_embed = self.word_to_vec(x)  # (batch, len, embed)
         # print('word embed --> {} size {}'.format(word_embed, word_embed.size()))
         # word_embed = word_embed.permute(1, 0, 2)  # (len, batch, embed)
-        out, h0 = self.rnn(word_embed)  # (len, batch, hidden)
+        out, h0 = self.rnn(word_embed,hs)  # (len, batch, hidden)
         le, mb, hd = out.shape
         out = out.contiguous().view(le * mb, hd)
         out = self.project(out)

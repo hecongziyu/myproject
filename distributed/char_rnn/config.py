@@ -43,13 +43,13 @@ class DefaultConfig(object):
     batch_size = 64  # batch size
     num_workers = 4  # how many workers for loading data
     max_epoch = 200
-    lr = 1e-4  # initial learning rate
+    lr = 1e-3  # initial learning rate
     weight_decay = 1e-4
 
 
     backend = 'gloo'
-    init-method = 'tcp://127.0.0.1:23456'
-    world-size = 2
+    init_method = 'tcp://127.0.0.1:23456'
+    world_size = 2
 
 
 
