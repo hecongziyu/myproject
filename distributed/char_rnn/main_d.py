@@ -250,10 +250,12 @@ def train(**kwargs):
     # for data in train_data:
     #     x,y = data
     char_rnn_trainer.load_state_dict(opt.load_model)
-    for _ in range(100000):
+    for i in range(100000):
         train_data = get_data(convert)
         kwarg = {"train_data":train_data, "epchos":opt.max_epoch, "begin":opt.begin,"predict_len":opt.predict_len}
         char_rnn_trainer.train(kwarg)
+        if i % 50 == 0:
+           char_rnn_trainer.predict(opt.begin, opt.predict_len)    
     # char_rnn_trainer.fit(train_data=train_data,
     #                      epochs=opt.max_epoch,
     #                      begin=opt.begin,
