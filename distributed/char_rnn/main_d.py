@@ -60,7 +60,7 @@ class Accuracy(object):
 
 def get_data(convert):
     dataset = TextDataset(opt.txt, opt.len, convert.text_to_arr)
-    sampler = DistributedSampler(train_set)    
+    sampler = DistributedSampler(dataset)    
     return DataLoader(dataset, 
         opt.batch_size, 
         shuffle=(sampler is None), 
@@ -145,7 +145,7 @@ class CharRNNTrainer():
             self.optimizer.step()
 
             print('loss --> {}'.format(loss))
-            if loss < current_loss:
+            if loss < current_loss and opt.rank==0:
                 current_loss = loss
                 self.save_state_dict(opt.load_model)
 
@@ -158,7 +158,7 @@ class CharRNNTrainer():
     def average_gradients(self):
         world_size = distributed.get_world_size()
 
-        for p in self.net.parameters():
+        for p in self.model.parameters():
             distributed.all_reduce(p.grad.data, op=distributed.reduce_op.SUM)
             p.grad.data /= float(world_size)
 
@@ -221,6 +221,7 @@ class CharRNNTrainer():
 
     def load_state_dict(self, checkpoints):
         if os.path.exists(checkpoints):
+            print('load last model {}'.format(checkpoints))
             self.model.load_state_dict(torch.load(checkpoints))
 
     def save_state_dict(self, checkpoints):
@@ -235,10 +236,12 @@ class CharRNNTrainer():
             self.best_metric = self.metric_log['perplexity']
 
 
+
 def train(**kwargs):
-    print(kwargs)
+    print('kwargs -->{}'.format(kwargs))
     opt._parse(kwargs)
     print(opt.rank)
+    init_process(opt)
     # torch.cuda.set_device(opt.ctx)
     convert = TextConverter(opt.txt, max_vocab=opt.max_vocab)
     train_data = get_data(convert)
