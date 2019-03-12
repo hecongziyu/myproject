@@ -236,6 +236,7 @@ class CharRNNTrainer():
 
 
 def train(**kwargs):
+    print(kwargs)
     opt._parse(kwargs)
     print(opt.rank)
     # torch.cuda.set_device(opt.ctx)
@@ -258,7 +259,7 @@ def train(**kwargs):
 
 def predict(**kwargs):
     opt._parse(kwargs)
-    torch.cuda.set_device(opt.ctx)
+    # torch.cuda.set_device(opt.ctx)
     convert = TextConverter(opt.txt, max_vocab=opt.max_vocab)
     char_rnn_trainer = CharRNNTrainer(convert)
     char_rnn_trainer.load_state_dict(opt.load_model)
