@@ -43,7 +43,7 @@ class DefaultConfig(object):
     batch_size = 64  # batch size
     num_workers = 4  # how many workers for loading data
     max_epoch = 200
-    lr = 1e-3  # initial learning rate
+    lr = 1e-4  # initial learning rate
     weight_decay = 1e-4
 
 
