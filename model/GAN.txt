@@ -1,0 +1,24 @@
+G = nn.Sequential(                      # Generator
+    nn.Linear(N_IDEAS, 128),            # random ideas (could from normal distribution)
+    nn.ReLU(),
+    nn.Linear(128, ART_COMPONENTS),     # making a painting from these random ideas
+)
+
+D = nn.Sequential(                      # Discriminator
+    nn.Linear(ART_COMPONENTS, 128),     # receive art work either from the famous artist or a newbie like G
+    nn.ReLU(),
+    nn.Linear(128, 1),
+    nn.Sigmoid(),                       # tell the probability that the art work is made by artist
+)
+
+min(G_loss) =  torch.mean(torch.log(1-D(G(x)))
+
+D(x) 越大， g_loss会越小
+
+--> log(1 - D(x)) -->D log(1 - nn.sigmod (0 --> 1) )   --> G.nn.Linear 与 D(直实) nn.Liner越类似
+
+
+max(D_loss) =  torch.mean(torch.log(D(real input)) + torch.log(1-D(G(x))))
+min(D_loss) = - torch.mean(torch.log(D(real input)) + torch.log(1-D(G(x))))
+
+最终的目标是g_loss越小，则越类似于真实
