@@ -15,6 +15,7 @@ class TextProposalConnector:
         # if X only include one point, the function will get line y=Y[0]
         if np.sum(X==X[0])==len(X):
             return Y[0], Y[0]
+        #  多项式拟合
         p=np.poly1d(np.polyfit(X, Y, 1))
         return p(x1), p(x2)
 
