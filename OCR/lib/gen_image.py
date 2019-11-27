@@ -46,9 +46,9 @@ def make_image(test_str, fonttype, fontsize,target_width ,target_height,
         image = cv2.blur(image,(np.random.randint(2,5), np.random.randint(2,5)))
 
     open_cv_image = image.copy()
-    if keep_redio:
-        percent = float(32) / open_cv_image.shape[0]
-        open_cv_image = cv2.resize(open_cv_image,(0,0), fx=percent, fy=percent, interpolation = cv2.INTER_AREA)
+#     if keep_redio:
+#         percent = float(32) / open_cv_image.shape[0]
+#         open_cv_image = cv2.resize(open_cv_image,(0,0), fx=percent, fy=percent, interpolation = cv2.INTER_AREA)
 
     return open_cv_image
 

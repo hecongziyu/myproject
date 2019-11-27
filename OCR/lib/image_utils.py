@@ -42,13 +42,13 @@ min_area_radio  文字区域最小区域
 def detect_char_area(image_gray_data, min_area = 80, min_y_diff=10):
     img = image_gray_data.copy()
     img = cv2.GaussianBlur(img,(3,3),0)
-    img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV,11,2)
+    img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV,51,10)
 
     element = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 3))
     img = cv2.erode(img, element,iterations=1)
     img = cv2.dilate(img, element,iterations=3)
-    # plt.imshow(img,'gray')
-    # plt.show()
+    plt.imshow(img,'gray')
+    plt.show()
     contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     cnts = []
     for cnt in contours:
