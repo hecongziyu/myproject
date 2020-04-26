@@ -20,6 +20,7 @@ class Im2LatexDataset(Dataset):
         pairs = torch.load(join(self.data_dir, "{}.pkl".format(self.split)))
         for i, (img, formula) in enumerate(pairs):
             pair = (img, " ".join(formula.split()[:self.max_len]))
+            # print('formula: '," ".join('\\int _ { - \\epsilon } ^ { \\infty } d '.split()[:self.max_len]))
             pairs[i] = pair
         return pairs
 
