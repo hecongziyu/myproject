@@ -4,7 +4,7 @@ from os.path import join
 import torch
 from torch.nn.utils import clip_grad_norm_
 
-from .utils import cal_loss, cal_epsilon
+from utils import cal_loss, cal_epsilon
 
 
 class Trainer(object):

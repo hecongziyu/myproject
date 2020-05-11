@@ -105,6 +105,7 @@ class Im2LatexModel(nn.Module):
         """
         # encoding
         encoded_imgs = self.encode(imgs)  # [B, H*W, 512]
+
         # init decoder's states  ？？？？？？？？？？
         dec_states, o_t = self.init_decoder(encoded_imgs)
         max_len = formulas.size(1)
@@ -122,6 +123,7 @@ class Im2LatexModel(nn.Module):
 
     def encode(self, imgs):
         encoded_imgs = self.cnn_encoder(imgs)  # [B, 512, H', W']
+        # print('crnn encoder encoded_imgs size :', encoded_imgs.size())
         encoded_imgs = encoded_imgs.permute(0, 2, 3, 1)  # [B, H', W', 512]
         B, H, W, _ = encoded_imgs.shape
         encoded_imgs = encoded_imgs.contiguous().view(B, H*W, -1)

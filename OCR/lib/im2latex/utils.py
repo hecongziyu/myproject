@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.distributions.bernoulli import Bernoulli
 
-from .build_vocab import PAD_TOKEN, UNK_TOKEN
+from build_vocab import PAD_TOKEN, UNK_TOKEN
 
 
 def collate_fn(sign2id, batch):

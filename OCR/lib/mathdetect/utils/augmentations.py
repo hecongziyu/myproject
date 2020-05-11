@@ -91,15 +91,15 @@ class ToAbsoluteCoords(object):
         return image, boxes, labels
 
 
-class ToPercentCoords(object):
-    def __call__(self, image, boxes=None, labels=None):
-        height, width, channels = image.shape
-        boxes[:, 0] /= width
-        boxes[:, 2] /= width
-        boxes[:, 1] /= height
-        boxes[:, 3] /= height
+# class ToPercentCoords(object):
+#     def __call__(self, image, boxes=None, labels=None):
+#         height, width, channels = image.shape
+#         boxes[:, 0] /= width
+#         boxes[:, 2] /= width
+#         boxes[:, 1] /= height
+#         boxes[:, 3] /= height
 
-        return image, boxes, labels
+#         return image, boxes, labels
 
 
 class Resize(object):
@@ -408,6 +408,7 @@ class SSDAugmentation(object):
     def __init__(self, size=300, mean=(104, 117, 123)):
         self.mean = mean
         self.size = size
+        print('mean :', self.mean)
 
         self.augment = Compose([
             ConvertFromInts(),

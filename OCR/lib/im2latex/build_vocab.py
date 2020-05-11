@@ -3,6 +3,7 @@ import pickle as pkl
 from collections import Counter
 import argparse
 
+
 START_TOKEN = 0
 PAD_TOKEN = 1
 END_TOKEN = 2
@@ -37,7 +38,7 @@ def build_vocab(data_dir, min_count=10):
     vocab = Vocab()
     counter = Counter()
 
-    formulas_file = join(data_dir, 'latex_formul_normal.txt')
+    formulas_file =  join(data_dir, 'latex_formul_normal.txt')
     with open(formulas_file, 'r') as f:
         formulas = [formula.strip('\n') for formula in f.readlines()]
 
@@ -68,6 +69,6 @@ def load_vocab(data_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Building vocab for Im2Latex")
     parser.add_argument("--data_path", type=str,
-                        default="./data/", help="The dataset's dir")
+                        default="D:\\PROJECT_TW\\git\\data\\im2latex", help="The dataset's dir")
     args = parser.parse_args()
     vocab = build_vocab(args.data_path)

@@ -1,7 +1,7 @@
 import argparse
 from data import *
 
-def init_args():
+def init_args(params=None):
     '''
     Read arguments and initialize directories
     :return: args
@@ -87,7 +87,11 @@ def init_args():
     parser.add_argument('--pos_thresh', default=0.5, type=float,
                         help='All default boxes with iou>pos_thresh are considered as positive examples')
 
-    args = parser.parse_args()
+    if params is None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(params)
+
     args.kernel = (1,5)
     args.padding = (0,2)
 
