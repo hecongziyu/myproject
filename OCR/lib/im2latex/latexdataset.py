@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from functools import partial
 import torch
 from build_vocab import PAD_TOKEN, UNK_TOKEN
+import numpy as np
 
 MEANS = (246, 246, 246)
 
@@ -18,13 +19,24 @@ MEANS = (246, 246, 246)
 1、找到该批次图片高度最大图片，将其它图片按比例缩放到该高度。可考虑设置缺省高度为64
 2、找到该批次图片宽度最大图片，其它图片填充空白区域到相同
 '''
-def collate_fn(sign2id,batch):
+def collate_fn(sign2id,batch,max_img_width=1200):
     transform = transforms.ToTensor()
     size = batch[0][0].shape
-    batch = [img_formula for img_formula in batch if img_formula[0].shape == size]
+    batch = [img_formula for img_formula in batch if img_formula[0].shape[1] < max_img_width]
+    # print(len(batch))
+
+    # for imt in batch:
+    #     print('origin image size: ', imt[0].shape)
+
+    # image_widths = [x[0].shape[1] for x in batch]
+    # max_width = max(image_widths)
+
+    # print('max width :', max_width)
+    # batch = [img_formula for img_formula in batch if img_formula[0].shape == size]
     # sort by the length of formula
     batch.sort(key=lambda img_formula: len(img_formula[1].split()), reverse=True)
     imgs, formulas = zip(*batch)
+    imgs = [expand_width(x, size[0], max_img_width) for x in imgs]    
     formulas = [formula.split() for formula in formulas]
     # targets for training , begin with START_TOKEN
     tgt4training = formulas2tensor(add_start_token(formulas), sign2id)
@@ -33,6 +45,11 @@ def collate_fn(sign2id,batch):
     imgs = [transform(x) for x in imgs]    
     imgs = torch.stack(imgs, dim=0)
     return imgs, tgt4training, tgt4cal_loss
+
+def expand_width(image, imgH, max_width):
+    image_ext = np.ones((imgH, max_width, image.shape[2]),dtype=image.dtype) * 255
+    image_ext[0:image.shape[0], 0:image.shape[1],:] = image
+    return image_ext
 
 
 
@@ -82,7 +99,7 @@ class LatexDataset(data.Dataset):
         self.latex_text = {}        
         self.read_all_image()
         self.read_all_latex()
-        print(self.latex_text)
+        # print(self.latex_text)
 
     def read_all_image(self):
         for idx, (image_file, latex_id) in enumerate(self.nSamples):
@@ -142,10 +159,10 @@ if __name__ == '__main__':
 
     vocab = load_vocab(args.dataset_root)
     latex_ds = LatexDataset(args, data_file=args.data_file,split='test',
-                            transform=LatexImgTransform(size=300, mean=MEANS),
+                            transform=LatexImgTransform(imgH=256, mean=MEANS,data_root=args.dataset_root),
                             target_transform=None,max_len=512)
 
-    for index in range(0, len(latex_ds)):
+    for index in range(len(latex_ds)):
         image, latex = latex_ds[index]
         print('latex :', latex, ' image size:', image.shape, '\n')
         print('image: \n', image)

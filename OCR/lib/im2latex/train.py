@@ -42,7 +42,7 @@ def main():
                         default=0., help="Dropout probility")
     parser.add_argument("--cuda", action='store_true',
                         default=True, help="Use cuda or not")
-    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--batch_size", type=int, default=5)
     parser.add_argument("--epoches", type=int, default=1000)
     parser.add_argument("--lr", type=float, default=3e-4,
                         help="Learning Rate")
@@ -100,20 +100,23 @@ def main():
         #                     transform=LatexImgTransform(size=300, mean=MEANS),
         #                     target_transform=None,max_len=512)
     train_loader = DataLoader(
-        LatexDataset(args, data_file=args.data_file,split='test', 
-                     transform=LatexImgTransform(size=300, mean=MEANS),max_len=args.max_len),
-        batch_size=args.batch_size,
-        collate_fn=partial(collate_fn, vocab.sign2id),
-        pin_memory=True if use_cuda else False,
-        num_workers=4)
-    val_loader = DataLoader(
-        LatexDataset(args, data_file=args.data_file,split='test', 
-                     transform=LatexImgTransform(size=300, mean=MEANS),
+        LatexDataset(args, data_file=args.data_file,split='train', 
+                     transform=LatexImgTransform(imgH=256, mean=MEANS,data_root=args.dataset_root),
                      max_len=args.max_len),
-        batch_size=args.batch_size,
-        collate_fn=partial(collate_fn, vocab.sign2id),
-        pin_memory=True if use_cuda else False,
-        num_workers=4)
+                     shuffle=True,
+                     batch_size=args.batch_size,
+                     collate_fn=partial(collate_fn, vocab.sign2id),
+                     pin_memory=True if use_cuda else False,
+                     num_workers=4)
+    val_loader = DataLoader(
+        LatexDataset(args, data_file=args.data_file,split='valid', 
+                     transform=LatexImgTransform(imgH=256, mean=MEANS,data_root=args.dataset_root),
+                     max_len=args.max_len),
+                     shuffle=True,
+                     batch_size=args.batch_size,
+                     collate_fn=partial(collate_fn, vocab.sign2id),
+                     pin_memory=True if use_cuda else False,
+                     num_workers=4)
 
     # construct model
     print("Construct model")

@@ -33,6 +33,7 @@ class Trainer(object):
             self.model.train()
             losses = 0.0
             for imgs, tgt4training, tgt4cal_loss in self.train_loader:
+                print('input imgs size :', imgs.size())
                 step_loss = self.train_step(imgs, tgt4training, tgt4cal_loss)
                 losses += step_loss
 

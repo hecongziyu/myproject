@@ -6,6 +6,7 @@ import types
 from numpy import random
 from matplotlib import pyplot as plt
 from PIL import Image, ImageOps
+import os
 import pickle as pkl
 from build_vocab import PAD_TOKEN, UNK_TOKEN
 
@@ -111,7 +112,7 @@ class Resize(object):
     def __call__(self, image):
         height, width, _ = image.shape
         radio = self.imgH/height
-        image = cv2.resize(image, (self.imgH,int(width*radio)), interpolation=cv2.INTER_AREA)
+        image = cv2.resize(image, (int(width*radio),self.imgH), interpolation=cv2.INTER_AREA)
         return image
 
 
@@ -237,42 +238,95 @@ class PhotometricDistort(object):
     def __init__(self):
         self.pd = [
             RandomContrast(),
-            # ConvertColor(transform='HSV'),
             RandomSaturation(),
             RandomHue(),
-            # ConvertColor(current='HSV', transform='BGR'),
             RandomContrast()
         ]
         self.rand_brightness = RandomBrightness()
         self.rand_light_noise = RandomLightingNoise()
 
     def __call__(self, image):
+
+        if random.randint(2):
+            return image
+
         im = image.copy()
-        im = self.rand_brightness(im)
+        # im = self.rand_brightness(im)
         if random.randint(2):
             distort = Compose(self.pd[:-1])
         else:
             distort = Compose(self.pd[1:])
         im = distort(im)
         return self.rand_light_noise(im)
-        # return im
+
+
+class Expand(object):
+    def __init__(self, mean):
+        self.mean = mean
+
+    def __call__(self, image):
+        if random.randint(2):
+            return image
+
+        height, width, depth = image.shape
+        ratio = random.uniform(1, 1.2)
+        left = random.uniform(0, int(width*ratio) - width)
+        top = random.uniform(0, int(height*ratio) - height)
+
+        expand_image = np.zeros(
+            (int(height*ratio), int(width*ratio), depth),
+            dtype=image.dtype)
+        expand_image[:, :, :] = self.mean
+        expand_image[int(top):int(top + height),
+                     int(left):int(left + width)] = image
+        image = expand_image
+        return image
+
+'''替换前景图片'''
+class BackGround(object):
+    def __init__(self, data_root, back_data_dir='bg'):
+        self.data_root = data_root
+        self.back_data_dir = back_data_dir
+    def __call__(self, image):
+        if random.randint(3) == 0:
+            return image        
+        height,width, _ = image.shape
+        bg_files = os.listdir(os.path.sep.join([self.data_root,self.back_data_dir]))
+        bg_img_file = os.path.sep.join([self.data_root, self.back_data_dir, bg_files[random.randint(0, len(bg_files))]])
+        bg_img = cv2.imread(bg_img_file,cv2.IMREAD_UNCHANGED)
+        bg_img = cv2.resize(bg_img, (width,height), interpolation=cv2.INTER_AREA)
+        bg_img[np.where(image==0)] = 0
+        return bg_img
+
+'''文字膨胀处理, 暂不处理'''
+class TxtDilate(object):
+    pass 
+
+
+'''文字模糊处理，暂不处理'''
+class TxtBlur(object):
+    pass      
+
+
+
 
 
 class LatexImgTransform(object):
-    def __init__(self, imgH=64, mean=(104, 117, 123)):
+    def __init__(self, imgH=64, mean=(104, 117, 123), data_root='./data'):
         self.mean = mean
         self.imgH = imgH
-        print('mean :', self.mean)
+        self.data_root = data_root
+        # print('mean :', self.mean)
 
         self.augment = Compose([
             ConvertFromInts(),
             # ToAbsoluteCoords(),  # ToAbsoluteCoords 转成绝对坐标，生成的box进行了缩放
-            PhotometricDistort() # PhotometricDistort 给数据增加噪声
-            # Expand(self.mean),     # 随机扩展图片, mean 中间颜色
+            # PhotometricDistort(), # PhotometricDistort 给数据增加噪声
+            Expand(self.mean),     # 随机扩展图片, mean 中间颜色
             # RandomSampleCrop(),
             # ToPercentCoords(),   # x1/width, x2/width, y1/height, y2/height
-            Resize(self.imgH)   # 将变换后图片转成 size * size
-            # SubtractMeans(self.mean) 
+            Resize(self.imgH),   # 将变换后图片转成 size * size
+            BackGround(self.data_root)
         ])
 
     def __call__(self, img):
