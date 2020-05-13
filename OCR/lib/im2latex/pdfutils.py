@@ -6,7 +6,6 @@ import fitz
 import numpy as np
 import random
 import cv2
-import lib.im2latex.gen_latex_img as lxu
 import os
 
 ANNO = 'annotations'
@@ -102,28 +101,3 @@ def __is_in_pos__(pos_lists, pos):
             flag = True
             break
     return flag
-
-
-# 生成数学公式检测训练数据, 读取PDF文件转换成图片，将数学公式图片替换到图片中
-def gen_test_pos_data(pdf_file,page_number,save_path,ext_dir_name, dir_name='gen'):
-    with open(pdf_file, 'rb') as f:
-        data=f.read()
-        pimage, ptext = pdf_convert_image(pdf_datas=data,page_number=page_number,page_height=1024,block_flag=True)
-    image = cv2.imdecode(np.frombuffer(pimage, np.uint8),cv2.IMREAD_COLOR)
-    latex_lists = lxu.random_latex(20)
-    limage_lists = [lxu.get_latex_image(x) for x in  latex_lists]
-    image, pos = batch_gen_image_pdf(image,ptext,limage_lists,size=random.randint(5,15))
-
-    image_dir = os.path.sep.join([save_path, IMAGE, dir_name, ext_dir_name])
-    if not os.path.exists(image_dir):
-    	os.mkdir(image_dir)
-    cv2.imwrite(os.path.sep.join([image_dir, f'{page_number}.png']), image)
-    # print(type(pos))
-    # print(pos)
-
-    anno_dir = os.path.sep.join([save_path, ANNO, dir_name, ext_dir_name])
-    if not os.path.exists(anno_dir):
-    	os.mkdir(anno_dir)
-    np.savetxt(os.path.sep.join([anno_dir, f'{page_number}.pmath']),np.array(pos),'%.3f', ',', )
-
-

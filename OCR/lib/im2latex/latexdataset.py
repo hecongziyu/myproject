@@ -19,7 +19,7 @@ MEANS = (246, 246, 246)
 1、找到该批次图片高度最大图片，将其它图片按比例缩放到该高度。可考虑设置缺省高度为64
 2、找到该批次图片宽度最大图片，其它图片填充空白区域到相同
 '''
-def collate_fn(sign2id,batch,max_img_width=1200):
+def collate_fn(sign2id,batch,max_img_width=600):
     transform = transforms.ToTensor()
     size = batch[0][0].shape
     batch = [img_formula for img_formula in batch if img_formula[0].shape[1] < max_img_width]

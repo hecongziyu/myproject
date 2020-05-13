@@ -54,7 +54,8 @@ def latex_to_img(latex_text,family='Courier New', fontsize=40):
     plt.rc('text', usetex=False)
     plt.rc('font', family=family)
     plt.text(0.5, 0.5, r"$%s$" % latex_text,fontsize = fontsize, ha='center', va='center')
-    plt.savefig(buf,format='png',transparent=False,pad_inches=0,dpi=300)
+    # plt.savefig(buf,format='png',transparent=False,pad_inches=0,dpi=300)
+    plt.savefig(buf,format='png',transparent=False,pad_inches=0)
     plt.close()
     image = Image.open(buf)
     return image

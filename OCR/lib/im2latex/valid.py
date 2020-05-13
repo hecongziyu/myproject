@@ -26,11 +26,11 @@ def load_model(model_path):
 
 def valid(latex_producer,image_path, data_root):
     image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-    resize = Resize(imgH=256)
+    resize = Resize(imgH=128)
     convertInts = ConvertFromInts()
     background = BackGround(data_root)
     image = resize(image)
-    image = expand_width(image, imgH=256, max_width=1200)
+    image = expand_width(image, imgH=128, max_width=600)
     transform = transforms.ToTensor()
     image_tensor = transform(image)
     image_tensor = image_tensor.unsqueeze(0)
@@ -41,7 +41,7 @@ def valid(latex_producer,image_path, data_root):
 def batch_valid(latex_producer,vocab,args):
     data_loader = DataLoader(
         LatexDataset(args, data_file=args.data_file,split='test', 
-                     transform=LatexImgTransform(imgH=256, mean=MEANS,data_root=args.dataset_root),
+                     transform=LatexImgTransform(imgH=128, mean=MEANS,data_root=args.dataset_root),
                      max_len=args.max_len),
                      batch_size=args.batch_size,
                      collate_fn=partial(collate_fn, vocab.sign2id),
@@ -61,10 +61,10 @@ def batch_valid(latex_producer,vocab,args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Im2Latex Evaluating Program")
     parser.add_argument('--model_path',default='D:\\PROJECT_TW\\git\\data\\im2latex\\ckpts\\best_ckpt.pt', type=str, help='path of the evaluated model')
-    parser.add_argument('--image_file',default='D:\\PROJECT_TW\\git\\data\\im2latex\\gen_images\\7.png', type=str, help='path of the evaluated model')
+    parser.add_argument('--image_file',default='D:\\PROJECT_TW\\git\\data\\im2latex\\gen_images\\79.png', type=str, help='path of the evaluated model')
     parser.add_argument('--dataset_root',default='D:\\PROJECT_TW\\git\\data\\im2latex', type=str, help='path of the evaluated model')
     parser.add_argument("--max_len", type=int, default=150, help="Max step of decoding")    
-    parser.add_argument("--beam_size", type=int, default=1)
+    parser.add_argument("--beam_size", type=int, default=5)
     parser.add_argument("--batch_size", type=int, default=5)
     parser.add_argument("--seed", type=int, default=2020,help="The random seed for reproducing ")
     parser.add_argument('--data_file', default='latex_formul_normal.txt',help='data set root')    
