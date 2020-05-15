@@ -6,8 +6,13 @@ import fitz
 import numpy as np
 import random
 import cv2
-import lib.im2latex.gen_latex_img as lxu
+# import lib.im2latex.gen_latex_img as lxu
 import os
+from pylatex.base_classes import Environment, CommandBase, Arguments
+from pylatex.package import Package
+from pylatex import Document, Section, UnsafeCommand
+from pylatex.utils import NoEscape
+
 
 ANNO = 'annotations'
 IMAGE = 'images'
@@ -125,5 +130,117 @@ def gen_test_pos_data(pdf_file,page_number,save_path,ext_dir_name, dir_name='gen
     if not os.path.exists(anno_dir):
     	os.mkdir(anno_dir)
     np.savetxt(os.path.sep.join([anno_dir, f'{page_number}.pmath']),np.array(pos),'%.3f', ',', )
+
+
+
+# 生成带latex文本的PDF文件，返回两个PDF， 一个带颜色底纹，一个不带
+# texts 正常文本 List， latexs 需增加的latexs
+def gen_latex_pdf(data_root, file_name, texts, latexs,max_phrase=10,latex_box_color='red'):
+    
+    # 随机插入latexs, 分为带颜色和不带颜色的
+
+    doc_text = []
+    doc_box_color_text = []
+
+    for idx in range(np.random.randint(5, max_phrase)):
+        item = texts[np.random.randint(len(texts))]
+        item_str = list(item)
+        _text = item_str.copy()
+        _box_color_text= item_str.copy()
+        
+        # for idx in range(np.random.randint(1,3)):
+        pos = np.random.randint(1,len(_text))
+        latex ='${}$'.format(latexs[np.random.randint(len(latexs))])
+        box_color_latex = '\colorbox{%s}{%s}' % (latex_box_color,latex)
+        latex = '\colorbox{white}{%s}' % (latex)
+        _text.insert(pos, latex)
+        _box_color_text.insert(pos, box_color_latex)
+
+
+        doc_text.append(''.join(_text))
+        doc_box_color_text.append(''.join(_box_color_text))
+    gen_pdf(data_root, file_name, doc_text)
+    gen_pdf(data_root, f'{file_name}_color', doc_box_color_text)        
+
+def gen_pdf(data_root, file_name, texts):
+    file_path = os.path.sep.join([data_root,'pdf', file_name])
+    if os.path.exists(file_path):
+        os.remove('{}.pdf'.format(file_path))
+
+    doc = Document()
+    doc.packages.add(Package('ctex'))
+    doc.packages.add(Package('color'))
+    doc.packages.add(Package('xcolor'))  
+    # print(len(texts))
+    with doc.create(Section('训练数据')):
+        for t in texts:
+            doc.append(NoEscape(r'%s' % (t)))
+            # if np.random.randint(2):
+            doc.append(NoEscape(r'\linebreak'))
+            # if np.random.randint(2):
+                # doc.append(NoEscape(r'\linebreak'))
+    doc.generate_pdf(file_path,clean_tex=True,compiler='xelatex')
+
+
+
+# 取得PDF中带底纹latex文本位位置，并将不带底纹文本位置返回
+# file_name 正常文件, color_file_name 带底纹文件
+def gen_latex_img_pos(data_root, file_name,imgH=1200,image_dir='images',anno_dir='annotations',sub_dir='autogen',latexs_box_color='red'):
+    pdf_file_path = os.path.sep.join([data_root,'pdf',file_name])
+
+    
+
+
+    # 得到数学公式坐标位置
+    with open(f'{pdf_file_path}_color.pdf','rb') as f:
+        data_color = f.read()
+    image = pdf2image(data_color, imgH=imgH)
+    image = cv2.imdecode(np.frombuffer(image, np.uint8),cv2.IMREAD_COLOR)
+    boundaries = [[0, 0, 255], [0, 0, 255]] # 红色
+    lower = np.array(boundaries[0], dtype="uint8")
+    upper = np.array(boundaries[1], dtype="uint8")
+    mask = cv2.inRange(image, lower, upper)
+    output = cv2.bitwise_and(image, image, mask=mask)
+    gray = cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
+    ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
+    contours, hierarchy = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    formula_pos = []
+    for cnt in contours:
+        x,y,w,h = cv2.boundingRect(cnt)
+        formula_pos.append([x,y,x+w,y+h])
+
+    anno_dir = os.path.sep.join([data_root,'data',anno_dir, sub_dir])
+    if not os.path.exists(anno_dir):
+        os.mkdir(anno_dir)
+    np.savetxt(os.path.sep.join([anno_dir, f'{file_name}.pmath']),np.array(formula_pos),'%.3f', ',', )
+
+
+    # PDF生成图片
+    with open(f'{pdf_file_path}.pdf','rb') as f:
+        data = f.read()
+    image = pdf2image(data, imgH=imgH)
+    image = cv2.imdecode(np.frombuffer(image, np.uint8),cv2.IMREAD_COLOR)
+    img_dir = os.path.sep.join([data_root,'data', image_dir, sub_dir])
+    if not os.path.exists(img_dir):
+        os.mkdir(img_dir)
+    cv2.imwrite(os.path.sep.join([img_dir, f'{file_name}.png']), image)
+
+
+def pdf2image(pdf_datas, page_number=0, imgH=None):
+    doc = fitz.open('pdf', pdf_datas)
+    page = doc[page_number]
+    pix = page.getPixmap()
+    zoom_x = 1
+    if imgH is not None:
+        zoom_x = imgH/pix.width
+        zoom_y = imgH/pix.height
+        mat = fitz.Matrix(zoom_x, zoom_y)
+        pix = page.getPixmap(matrix=mat,alpha=False)
+    image_data = pix.getImageData()
+    return image_data
+
+
+
+
 
 

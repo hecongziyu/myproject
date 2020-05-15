@@ -282,7 +282,7 @@ class Expand(object):
         image = expand_image
         return image
 
-'''替换前景图片'''
+'''替换前景景图片'''
 class BackGround(object):
     def __init__(self, data_root, back_data_dir='bg'):
         self.data_root = data_root
@@ -295,7 +295,7 @@ class BackGround(object):
         bg_img_file = os.path.sep.join([self.data_root, self.back_data_dir, bg_files[random.randint(0, len(bg_files))]])
         bg_img = cv2.imread(bg_img_file,cv2.IMREAD_UNCHANGED)
         bg_img = cv2.resize(bg_img, (width,height), interpolation=cv2.INTER_AREA)
-        bg_img[np.where(image==0)] = 0
+        bg_img[np.where(image<=128)] = 0
         return bg_img
 
 '''文字膨胀处理, 暂不处理'''

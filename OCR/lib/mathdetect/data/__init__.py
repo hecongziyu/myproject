@@ -1,9 +1,13 @@
 #from .gtdb import GTDB_CLASSES, GTDB_ROOT, GTDBAnnotationTransform, GTDBDetection
-from .gtdb_new import GTDB_CLASSES, GTDB_ROOT, GTDBAnnotationTransform, GTDBDetection
+# from .gtdb_new import GTDB_CLASSES, GTDB_ROOT, GTDBAnnotationTransform, GTDBDetection
+from .gtdb_formula import GTDB_CLASSES,GTDBAnnotationTransform, GTDBDetection
 from .config import *
 import torch
 import cv2
 import numpy as np
+from torchvision import transforms
+
+transform = transforms.ToTensor()
 
 def detection_collate(batch):
     """Custom collate fn for dealing with batches of images that have a different
@@ -23,11 +27,11 @@ def detection_collate(batch):
     ids = []
 
     for sample in batch:
-        imgs.append(sample[0])
+        imgs.append(transform(sample[0]))
         targets.append(torch.FloatTensor(sample[1]))
         ids.append(sample[2])
 
-    return torch.stack(imgs, 0), targets, ids
+    return torch.stack(imgs, dim=0), targets, ids
 
 
 def base_transform(image, size, mean):

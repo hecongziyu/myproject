@@ -10,6 +10,7 @@ cropped_image[:y_h-y_l, :x_h-x_l, :] = image[y_l: y_h, x_l: x_h, :]
 from __future__ import print_function
 import os
 import argparse
+from init import init_args
 import torch.backends.cudnn as cudnn
 from ssd import build_ssd
 from utils import draw_boxes, helpers, save_boxes
@@ -22,6 +23,7 @@ from torch.utils.data import Dataset, DataLoader
 from data import *
 import shutil
 import torch.nn as nn
+from utils.pdfutils import gen_latex_pdf,gen_latex_img_pos
 
 """
 ！！！！ 注意训练时,训练数据image的大小是1200， 再resize到500, 所以结果需要再 * 1200
@@ -139,22 +141,31 @@ def test_gtdb(args):
                    thresh=args.visual_threshold)
 
 
+
+def test_gen_data(args):
+    texts = ['让指定位置字符串中的任意位置显示不同的颜色大小','将转化为可变字符串，再根据指定字符查找该字符，再在该字符前面插入换行符']
+    formuls = ['\\frac {a} {b} ', '\\sqrt {a},{b}']
+
+    gen_latex_pdf(data_root='D:\\PROJECT_TW\\git\\data\\mathdetect', file_name='test', texts=texts, latexs=formuls)
+    gen_latex_img_pos(data_root='D:\PROJECT_TW\git\data\mathdetect', file_name='test',imgH=1024)
+
 if __name__ == '__main__':
 
     args = init_args()
-    start = time.time()
-    try:
-        filepath=os.path.join(args.log_dir, args.exp_name + "_" + str(round(time.time())) + ".log")
-        print('Logging to ' + filepath)
-        logging.basicConfig(filename=filepath,
-                            filemode='w', format='%(process)d - %(asctime)s - %(message)s',
-                            datefmt='%d-%b-%y %H:%M:%S', level=logging.DEBUG)
+    # start = time.time()
+    # try:
+    #     filepath=os.path.join(args.log_dir, args.exp_name + "_" + str(round(time.time())) + ".log")
+    #     print('Logging to ' + filepath)
+    #     logging.basicConfig(filename=filepath,
+    #                         filemode='w', format='%(process)d - %(asctime)s - %(message)s',
+    #                         datefmt='%d-%b-%y %H:%M:%S', level=logging.DEBUG)
 
-        test_gtdb(args)
-    except Exception as e:
-        logging.error("Exception occurred", exc_info=True)
+    #     test_gtdb(args)
+    # except Exception as e:
+    #     logging.error("Exception occurred", exc_info=True)
 
-    end = time.time()
-    logging.debug('Toal time taken ' + str(datetime.timedelta(seconds=end-start)))
-    logging.debug("Testing done!")
+    # end = time.time()
+    # logging.debug('Toal time taken ' + str(datetime.timedelta(seconds=end-start)))
+    # logging.debug("Testing done!")
 
+    test_gen_data(None)

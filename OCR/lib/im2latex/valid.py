@@ -10,6 +10,8 @@ from latexdataset import LatexDataset,collate_fn,MEANS,expand_width
 from torch.utils.data import DataLoader
 from latextransform import LatexImgTransform
 from functools import partial
+from matplotlib import pyplot as plt
+import time
 
 
 def load_model(model_path):
@@ -30,38 +32,52 @@ def valid(latex_producer,image_path, data_root):
     convertInts = ConvertFromInts()
     background = BackGround(data_root)
     image = resize(image)
+    image = background(image)
     image = expand_width(image, imgH=128, max_width=600)
     transform = transforms.ToTensor()
     image_tensor = transform(image)
     image_tensor = image_tensor.unsqueeze(0)
     print('input image size:', image_tensor.size())
     formula = latex_producer(image_tensor)
+    plt.imshow(image)
+    plt.show()
     return formula
 
 def batch_valid(latex_producer,vocab,args):
+    start = time.time()
     data_loader = DataLoader(
         LatexDataset(args, data_file=args.data_file,split='test', 
-                     transform=LatexImgTransform(imgH=128, mean=MEANS,data_root=args.dataset_root),
+                     transform = None,
+                     # transform=LatexImgTransform(imgH=128, mean=MEANS,data_root=args.dataset_root),
                      max_len=args.max_len),
-                     batch_size=args.batch_size,
-                     collate_fn=partial(collate_fn, vocab.sign2id),
+                     batch_size=1,
+                     # batch_size=args.batch_size,
+                     # collate_fn=partial(collate_fn, vocab.sign2id),
                      pin_memory=True if use_cuda else False,
                      num_workers=4)
-    for imgs, tgt4training, tgt4cal_loss in data_loader:
-        try:
-            reference = latex_producer._idx2formulas(tgt4cal_loss)
-            results = latex_producer(imgs)
-            print('results:', results)
-            print('tgt4cal_loss:', reference)
-        except RuntimeError:
-            break
+    print('data load time :', (time.time() - start ))
+    for idx in range(5):
+        start = time.time()
+        # for imgs, tgt4training, tgt4cal_loss in data_loader:
+        for data in data_loader:
+            try:
+                print(idx, ' load data time :',  (time.time() - start ))
+                # start = time.time()
+                # reference = latex_producer._idx2formulas(tgt4cal_loss)
+                # results = latex_producer(imgs)
+                # print('predict  time :',  (time.time() - start ))
+                start = time.time()
+                # print('results:', results)
+                # print('tgt4cal_loss:', reference)
+            except RuntimeError:
+                break
 
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Im2Latex Evaluating Program")
     parser.add_argument('--model_path',default='D:\\PROJECT_TW\\git\\data\\im2latex\\ckpts\\best_ckpt.pt', type=str, help='path of the evaluated model')
-    parser.add_argument('--image_file',default='D:\\PROJECT_TW\\git\\data\\im2latex\\gen_images\\79.png', type=str, help='path of the evaluated model')
+    parser.add_argument('--image_file',default='D:\\PROJECT_TW\\git\\data\\im2latex\\gen_images\\19.png', type=str, help='path of the evaluated model')
     parser.add_argument('--dataset_root',default='D:\\PROJECT_TW\\git\\data\\im2latex', type=str, help='path of the evaluated model')
     parser.add_argument("--max_len", type=int, default=150, help="Max step of decoding")    
     parser.add_argument("--beam_size", type=int, default=5)

@@ -7,6 +7,7 @@ from functools import partial
 import torch
 from build_vocab import PAD_TOKEN, UNK_TOKEN
 import numpy as np
+import time
 
 MEANS = (246, 246, 246)
 
@@ -162,19 +163,22 @@ if __name__ == '__main__':
                             transform=LatexImgTransform(imgH=256, mean=MEANS,data_root=args.dataset_root),
                             target_transform=None,max_len=512)
 
-    for index in range(len(latex_ds)):
-        image, latex = latex_ds[index]
-        print('latex :', latex, ' image size:', image.shape, '\n')
-        print('image: \n', image)
-        plt.imshow(image)
-        plt.show()
-    # use_cuda = False
+    # for index in range(len(latex_ds)):
+    #     image, latex = latex_ds[index]
+    #     print('latex :', latex, ' image size:', image.shape, '\n')
+    #     print('image: \n', image)
+    #     plt.imshow(image)
+    #     plt.show()
+    use_cuda = False
 
-    # data_loader = DataLoader(latex_ds,
-    #     batch_size=5,
-    #     collate_fn=partial(collate_fn, vocab.sign2id),
-    #     pin_memory=True if use_cuda else False,
-    #     num_workers=1)
+    data_loader = DataLoader(latex_ds,
+        batch_size=5,
+        collate_fn=partial(collate_fn, vocab.sign2id),
+        pin_memory=True if use_cuda else False,
+        num_workers=1)
+    data_iter = enumerate(data_loader)
 
+    # for idx in range(len(data_loader)):
+        # imgs, tgt4training, tgt4cal_loss = data_iter.next()
     # for imgs, tgt4training, tgt4cal_loss in data_loader:
-    #     print(imgs.size(), tgt4training.size(), tgt4cal_loss.size())
+        # print(imgs.size(), tgt4training.size(), tgt4cal_loss.size())

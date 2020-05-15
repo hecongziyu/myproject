@@ -14,13 +14,13 @@ def init_args(params=None):
                         type=str, help='data root path')
     parser.add_argument('--dataset', default='GTDB', choices=['GTDB'],
                         type=str, help='choose GTDB')
-    parser.add_argument('--dataset_root', default=GTDB_ROOT,
+    parser.add_argument('--dataset_root', default='D:\\PROJECT_TW\\git\\data\\mathdetect\\data',
                         help='Dataset root directory path')
     parser.add_argument('--basenet', default='vgg16_reducedfc.pth',
                         help='Pretrained base model')
-    parser.add_argument('--batch_size', default=2, type=int,
+    parser.add_argument('--batch_size', default=5, type=int,
                         help='Batch size for training')
-    parser.add_argument('--resume', default=None, type=str,
+    parser.add_argument('--resume', default='D:\\PROJECT_TW\\git\\data\\mathdetect\\ckpts\\weights_math_detector\\best_ssd512.pth', type=str,
                         help='Checkpoint state_dict file to resume training from')
     parser.add_argument('--start_iter', default=0, type=int,
                         help='Resume training at this iter')
