@@ -44,7 +44,7 @@ exp_cfg = {
 
     'math_gtdb_512': {
 
-        'num_classes': 2,
+        'num_classes': 3,
         'lr_steps': (80000, 100000, 120000),
         'max_iter': 240000,
         'feature_maps': [64, 32, 16, 8, 4, 2, 1],

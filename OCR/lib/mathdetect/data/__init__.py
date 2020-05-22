@@ -1,6 +1,6 @@
 #from .gtdb import GTDB_CLASSES, GTDB_ROOT, GTDBAnnotationTransform, GTDBDetection
 # from .gtdb_new import GTDB_CLASSES, GTDB_ROOT, GTDBAnnotationTransform, GTDBDetection
-from .gtdb_formula import GTDB_CLASSES,GTDBAnnotationTransform, GTDBDetection
+from .gtdb_formula_pic import GTDB_CLASSES,GTDBAnnotationTransform, GTDBDetection
 from .config import *
 import torch
 import cv2

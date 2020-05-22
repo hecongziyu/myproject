@@ -56,7 +56,14 @@ class MultiBoxLoss(nn.Module):
             targets (tensor): Ground truth boxes and labels for a batch,
                 shape: [batch_size,num_objs,5] (last idx is the label).
         """
+
+
+
         loc_data, conf_data, priors = predictions
+        # print('loc data size:', loc_data.size())
+        # print('conf data size:', conf_data.size())
+        # print('prios data size:', priors.size())
+        # print('num class:', self.num_classes)
         num = loc_data.size(0)
         priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
@@ -66,13 +73,16 @@ class MultiBoxLoss(nn.Module):
         loc_t = torch.Tensor(num, num_priors, 4)
         conf_t = torch.LongTensor(num, num_priors)
 
+        # print('loc t size:', loc_t.size())
+        # print('conf t size:', conf_t.size())
+
         for idx in range(num):
             truths = targets[idx][:, :-1].data
             labels = targets[idx][:, -1].data
             defaults = priors.data
             # match 处理后 #loc_t： [num_priors,4] encoded offsets to learn 
-            match(self.threshold, truths, defaults, self.variance, labels,
-                  loc_t, conf_t, idx)
+            # conf t 是在原来labels值上面加了1， 0 作为背景
+            match(self.threshold, truths, defaults, self.variance, labels, loc_t, conf_t, idx)
 
 
         if self.args.cuda:
@@ -103,7 +113,12 @@ class MultiBoxLoss(nn.Module):
         log_sum_exp:  Utility function for computing log_sum_exp while determining
         This will be used to determine unaveraged confidence loss across
         all examples in a batch.   ？？？？？？'''
-        # batch_conf.gather ？？？？
+        
+        # print('batch conf size :', batch_conf.size(), ' conf t size: ', conf_t.view(-1,1).size())
+
+        #  batch_conf gather 是以conf_t 作为 index，取该index的数值, 如 conf 类别 为 1,1,2，则会取bath_conf对应1,1,2列的值
+        #  log_sum_exp 为 该类别里面最大值
+        #  loss c 的算法 
         loss_c = log_sum_exp(batch_conf) - batch_conf.gather(1, conf_t.view(-1, 1))
 
         # Hard Negative Mining

@@ -12,7 +12,9 @@ from pylatex.base_classes import Environment, CommandBase, Arguments
 from pylatex.package import Package
 from pylatex import Document, Section, UnsafeCommand
 from pylatex.utils import NoEscape
-
+from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
 
 ANNO = 'annotations'
 IMAGE = 'images'
@@ -138,6 +140,13 @@ def gen_test_pos_data(pdf_file,page_number,save_path,ext_dir_name, dir_name='gen
 def gen_latex_pdf(data_root, file_name, texts, latexs,max_phrase=10,latex_box_color='red'):
     
     # 随机插入latexs, 分为带颜色和不带颜色的
+    # 随机插入几何图形， 边框颜色为蓝色
+
+    # print(os.path.sep.join([data_root,'picture']))
+    pic_files = os.listdir(os.path.sep.join([data_root,'picture']))
+    pic_files = [os.path.sep.join([data_root, 'picture',x]).replace('\\','/') for x in pic_files]
+
+
 
     doc_text = []
     doc_box_color_text = []
@@ -145,10 +154,12 @@ def gen_latex_pdf(data_root, file_name, texts, latexs,max_phrase=10,latex_box_co
     for idx in range(np.random.randint(5, max_phrase)):
         item = texts[np.random.randint(len(texts))]
         item_str = list(item)
+        # print('item str :', item_str)
         _text = item_str.copy()
         _box_color_text= item_str.copy()
         
         # for idx in range(np.random.randint(1,3)):
+        #  随机插入latex到文本中
         pos = np.random.randint(1,len(_text))
         latex ='${}$'.format(latexs[np.random.randint(len(latexs))])
         box_color_latex = '\colorbox{%s}{%s}' % (latex_box_color,latex)
@@ -156,9 +167,34 @@ def gen_latex_pdf(data_root, file_name, texts, latexs,max_phrase=10,latex_box_co
         _text.insert(pos, latex)
         _box_color_text.insert(pos, box_color_latex)
 
+        # 随机在文本中插入图片
+        if np.random.randint(3) == 0:
+            pos = np.random.randint(1,len(_text))
+            insert_pic_file = pic_files[np.random.randint(len(pic_files))]
+            picture = '\\fcolorbox{white}{white}{\includegraphics[scale=0.05]{%s}}' % (insert_pic_file)
+            color_picture = '\\fcolorbox{blue}{blue}{\includegraphics[scale=0.05]{%s}}' % (insert_pic_file)
+            _text.insert(pos, picture)
+            _box_color_text.insert(pos, color_picture)
+
 
         doc_text.append(''.join(_text))
         doc_box_color_text.append(''.join(_box_color_text))
+
+
+    # 随机在文本段中插入图片
+    # if np.random.randint(2) == 0:
+    insert_pic_file = pic_files[np.random.randint(len(pic_files))]
+    pos = np.random.randint(1, len(doc_text))
+    picture = '\\begin{figure}[ht] \centering \\fcolorbox{white}{white}{\includegraphics[scale=0.2]{%s}} \end{figure}' % insert_pic_file
+    color_picture = '\\begin{figure}[ht] \centering \\fcolorbox{blue}{blue}{\includegraphics[scale=0.2]{%s}} \end{figure}' % insert_pic_file
+
+    # print(color_picture)    
+
+    doc_text.insert(pos, picture)
+    doc_box_color_text.insert(pos, color_picture)
+
+    # print(doc_box_color_text)
+
     gen_pdf(data_root, file_name, doc_text)
     gen_pdf(data_root, f'{file_name}_color', doc_box_color_text)        
 
@@ -171,14 +207,15 @@ def gen_pdf(data_root, file_name, texts):
     doc.packages.add(Package('ctex'))
     doc.packages.add(Package('color'))
     doc.packages.add(Package('xcolor'))  
-    # print(len(texts))
+    doc.packages.add(Package('graphicx'))  
+    doc.packages.add(Package('geometry'))  
+    doc.append(NoEscape(r'\newgeometry{left=3cm,bottom=1cm}'))
+
     with doc.create(Section('训练数据')):
         for t in texts:
             doc.append(NoEscape(r'%s' % (t)))
-            # if np.random.randint(2):
             doc.append(NoEscape(r'\linebreak'))
-            # if np.random.randint(2):
-                # doc.append(NoEscape(r'\linebreak'))
+
     doc.generate_pdf(file_path,clean_tex=True,compiler='xelatex')
 
 
@@ -188,15 +225,51 @@ def gen_pdf(data_root, file_name, texts):
 def gen_latex_img_pos(data_root, file_name,imgH=1200,image_dir='images',anno_dir='annotations',sub_dir='autogen',latexs_box_color='red'):
     pdf_file_path = os.path.sep.join([data_root,'pdf',file_name])
 
-    
+    anno_dir = os.path.sep.join([data_root,'data',anno_dir, sub_dir])
+    if not os.path.exists(anno_dir):
+        os.mkdir(anno_dir)
 
 
     # 得到数学公式坐标位置
     with open(f'{pdf_file_path}_color.pdf','rb') as f:
         data_color = f.read()
+
     image = pdf2image(data_color, imgH=imgH)
     image = cv2.imdecode(np.frombuffer(image, np.uint8),cv2.IMREAD_COLOR)
+    # plt.imshow(image)
+    # plt.show()
+
     boundaries = [[0, 0, 255], [0, 0, 255]] # 红色
+    lower = np.array(boundaries[0], dtype="uint8")
+    upper = np.array(boundaries[1], dtype="uint8")
+    mask = cv2.inRange(image, lower, upper)
+    output = cv2.bitwise_and(image, image, mask=mask)
+    gray = cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
+    # plt.imshow(gray,'gray')
+    # plt.show()
+
+    ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
+    contours, hierarchy = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    formula_pos = []
+
+    # tmpImg = image.copy()
+    for cnt in contours:
+        x,y,w,h = cv2.boundingRect(cnt)
+        # cv2.rectangle(tmpImg, (x,y), (x+w, y+h), (0, 255, 0), 2)
+        # formula_pos append (x1,y1,x2,y2, math label)
+        formula_pos.append([x,y,x+w,y+h,0])
+
+    # print(tmpImg.shape)
+    # print(np.array(formula_pos))
+
+    # plt.imshow(tmpImg)
+    # plt.show()
+
+    np.savetxt(os.path.sep.join([anno_dir, f'{file_name}.pmath']),np.array(formula_pos),'%.3f', ',', )
+
+
+    # 得到PDF中图片位置
+    boundaries = [[255, 0, 0], [255, 0, 0]] # 蓝色
     lower = np.array(boundaries[0], dtype="uint8")
     upper = np.array(boundaries[1], dtype="uint8")
     mask = cv2.inRange(image, lower, upper)
@@ -204,18 +277,26 @@ def gen_latex_img_pos(data_root, file_name,imgH=1200,image_dir='images',anno_dir
     gray = cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
     ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
     contours, hierarchy = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    formula_pos = []
+    pic_pos = []
     for cnt in contours:
         x,y,w,h = cv2.boundingRect(cnt)
-        formula_pos.append([x,y,x+w,y+h])
+         # pic_pos append (x1,y1,x2,y2, pic label)
+        pic_pos.append([x,y,x+w,y+h,1])
 
-    anno_dir = os.path.sep.join([data_root,'data',anno_dir, sub_dir])
-    if not os.path.exists(anno_dir):
-        os.mkdir(anno_dir)
-    np.savetxt(os.path.sep.join([anno_dir, f'{file_name}.pmath']),np.array(formula_pos),'%.3f', ',', )
+
+    np.savetxt(os.path.sep.join([anno_dir, f'{file_name}.ppic']),np.array(pic_pos),'%.3f', ',', )
 
 
     # PDF生成图片
+    # with open(f'{pdf_file_path}_color.pdf','rb') as f:
+    #     data = f.read()
+    # image = pdf2image(data, imgH=imgH)
+    # image = cv2.imdecode(np.frombuffer(image, np.uint8),cv2.IMREAD_COLOR)
+    # img_dir = os.path.sep.join([data_root,'data', image_dir, sub_dir])
+    # if not os.path.exists(img_dir):
+    #     os.mkdir(img_dir)
+    # cv2.imwrite(os.path.sep.join([img_dir, f'{file_name}_color.png']), image)
+
     with open(f'{pdf_file_path}.pdf','rb') as f:
         data = f.read()
     image = pdf2image(data, imgH=imgH)
@@ -232,7 +313,7 @@ def pdf2image(pdf_datas, page_number=0, imgH=None):
     pix = page.getPixmap()
     zoom_x = 1
     if imgH is not None:
-        zoom_x = imgH/pix.width
+        zoom_x = imgH/pix.height
         zoom_y = imgH/pix.height
         mat = fitz.Matrix(zoom_x, zoom_y)
         pix = page.getPixmap(matrix=mat,alpha=False)

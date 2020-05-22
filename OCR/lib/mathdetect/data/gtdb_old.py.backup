@@ -89,7 +89,7 @@ class GTDBDetection(data.Dataset):
 
         self._annopath = osp.join('%s', 'annotations', '%s.pmath')
         self._imgpath = osp.join('%s', 'images', '%s.png')
-        self._char_annopath = osp.join('%s', 'char_annotations', '%s.pchar')
+        self._pic_annopath = osp.join('%s', 'char_annotations', '%s.ppic')
 
         self.ids = list()
 

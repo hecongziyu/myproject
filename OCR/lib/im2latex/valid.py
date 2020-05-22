@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 import time
 
 
+
 def load_model(model_path):
     checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
     model_args = checkpoint['args']    

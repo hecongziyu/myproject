@@ -172,6 +172,8 @@ def log_sum_exp(x):
         x (Variable(tensor)): conf_preds from conf layers
     """
     x_max = x.data.max()
+    # exp 保证均为正数, torch.exp(x-x_max) exp(0) = 1, 当数据越靠近期望数值时
+    # log(1) = 0
     return torch.log(torch.sum(torch.exp(x-x_max), 1, keepdim=True)) + x_max
 
 

@@ -6,7 +6,7 @@
 
 from data import *
 # from utils.augmentations import SSDAugmentation
-from data.gtdb_formula import GTDBDetection, GTDBAnnotationTransform,GTDB_CLASSES
+from data.gtdb_formula_pic import GTDBDetection, GTDBAnnotationTransform,GTDB_CLASSES
 from data.gtdb_transform import GTDBTransform
 from layers.modules import MultiBoxLoss
 from ssd import build_ssd
@@ -97,7 +97,7 @@ def train(args):
         logging.debug('Resuming training, loading {}...'.format(args.resume))
         ssd_net.load_state_dict(torch.load(args.resume))
     else:
-        vgg_weights = torch.load(os.path.join(args.root_path, 'weights',args.basenet))
+        vgg_weights = torch.load(os.path.join(args.root_path, 'weights',args.basenet),map_location=torch.device('cpu'))
         logging.debug('Loading base network...')
         ssd_net.vgg.load_state_dict(vgg_weights)        
 
@@ -142,7 +142,7 @@ def train(args):
         # load train data
         try:
             images, targets, _ = next(batch_iterator)
-            print('images size:', images.size())
+            # print('images size:', images.size())
         except StopIteration:
              batch_iterator = iter(data_loader)
              images, targets, _ = next(batch_iterator)

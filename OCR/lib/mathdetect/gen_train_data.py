@@ -48,6 +48,7 @@ def gen_train_txt(data_root, img_dir, sub_dir):
 
     with open(os.path.sep.join([data_root,'data','valid_data']),'w',encoding='utf-8') as f:
         f.writelines('\n'.join(valid_data))
+
     print(len(all_data))
     print(len(train_data))
     print(len(valid_data))
@@ -70,9 +71,9 @@ if __name__ == '__main__':
     parser.add_argument('--formula_file', default='formuls.txt', type=str, help='数学公式文本')
     parser.add_argument('--gen_size', default='5',type=int,help='gen size')    
     args = parser.parse_args()
-    # gen_train_data(data_root=args.data_root, 
-    #                 text_file=args.text_file, 
-    #                 formula_file=args.formula_file,
-    #                 begin_idx=200,
-    #                 gen_size=2000)
-    gen_train_txt(args.data_root, 'images', 'autogen')
+    gen_train_data(data_root=args.data_root, 
+                    text_file=args.text_file, 
+                    formula_file=args.formula_file,
+                    begin_idx=1,
+                    gen_size=100)
+    # gen_train_txt(args.data_root, 'images', 'autogen')

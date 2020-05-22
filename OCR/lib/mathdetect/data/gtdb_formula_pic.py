@@ -2,6 +2,8 @@
 Author: Parag Mali
 Data reader for the GTDB dataset
 Uses sliding windows to generate sub-images
+
+处理包括数学公式、几何图形的数据集
 """
 import sys
 sys.path.append('../')
@@ -20,9 +22,11 @@ import utils.visualize as visualize
 
 
 GTDB_CLASSES = (  # always index 0 is background
-    'math')
+   'math','pic')
 
 GTDB_ROOT = osp.join(HOME, "data/GTDB/")
+
+
 
 class GTDBAnnotationTransform(object):
     """Transforms a GTDB annotation into a Tensor of bbox coords and label index
@@ -45,7 +49,7 @@ class GTDBAnnotationTransform(object):
         res = []
         # read the annotations
         for box in target:
-            res.append([box[0]/width, box[1]/height, box[2]/width, box[3]/height, 0])
+            res.append([box[0]/width, box[1]/height, box[2]/width, box[3]/height, box[4]])
         return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
 
@@ -85,16 +89,22 @@ class GTDBDetection(data.Dataset):
 
         self._annopath = osp.join('%s', 'annotations', '%s.pmath')
         self._imgpath = osp.join('%s', 'images', '%s.png')
-        self._char_annopath = osp.join('%s', 'char_annotations', '%s.pchar')
+        self._pic_annopath = osp.join('%s', 'annotations', '%s.ppic')
 
         self.ids = list()
+
 
         for line in open(osp.join(self.root, self.image_set)):
             self.ids.append((self.root, line.strip()))
 
+
         # initialize the training images and annotations
         self.images = {}
+        # 数学公式边框
         self.math_ground_truth = {}
+        # 图片边框
+        self.pic_ground_true = {}
+
         self.is_math = {}
         # for each id store the image patch which has math
         # This can be used as a box util
@@ -111,55 +121,7 @@ class GTDBDetection(data.Dataset):
     '''
     def generate_metadata(self):
         for id in self.ids:
-            math_patches = []
-            height, width, channels = self.images[id[1]].shape
-            current_page_boxes = self.math_ground_truth[id[1]]
-            n_horizontal = np.ceil(width / self.window)  # 4
-            n_vertical = np.ceil(height / self.window)  # 5
-
-            h = np.arange(0, n_horizontal - 1 + self.stride, self.stride)
-            v = np.arange(0, n_vertical - 1 + self.stride, self.stride)
-            crop_size = self.window
-
-            if (self.split == 'train' or self.split == 'validate')  and self.is_math[id[1]]:
-
-                for i in h:
-                    for j in v:
-                        x_l = int(np.round(crop_size * i))
-                        x_h = x_l + self.window
-                        y_l = int(np.round(crop_size * j))
-                        y_h = y_l + self.window
-
-                        # left, top, right, bottom
-                        image_box = [x_l, y_l, x_h, y_h]
-                        current_page_boxes = copy.deepcopy(self.math_ground_truth[id[1]])
-
-                        # if math intersects only consider the region which
-                        # is part of the current bounding box
-                        # 检测当前 单元的 image box 是否在标记的box里面
-                        for box in current_page_boxes:
-                            if box_utils.intersects(image_box, box):
-                                # left, top, right, bottom
-                                # y increases downwards
-                                # crop the boxes to fit into image region
-                                box[0] = max(x_l, box[0])
-                                box[1] = max(y_l, box[1])
-                                box[2] = min(x_h, box[2])
-                                box[3] = min(y_h, box[3])
-                                # # Translate to origin
-                                box[0] = box[0] - x_l
-                                box[2] = box[2] - x_l
-                                box[1] = box[1] - y_l
-                                box[3] = box[3] - y_l
-                                if feature_extractor.width(box) > 0 and feature_extractor.height(box) > 0:
-                                    self.metadata.append([id[1], x_l, y_l])
-                                    break
-            elif self.split=='test':
-                for i in h:
-                    for j in v:
-                        x_l = int(np.round(crop_size * i))
-                        y_l = int(np.round(crop_size * j))
-                        self.metadata.append([id[1], x_l, y_l])
+            self.metadata.append([id[1], 0, 0])
 
     def read_all_images(self):
 
@@ -174,18 +136,33 @@ class GTDBDetection(data.Dataset):
 
         # This function reads all the annotations for the training images
         for id in self.ids:
-            if osp.exists(self._annopath % id):
-                gt_regions = np.genfromtxt(self._annopath % id, delimiter=',')
-                gt_regions = gt_regions.astype(int)
+            if osp.exists(self._annopath % id) or osp.exists(self._pic_annopath % id):
+                if osp.exists(self._annopath % id):
+                    # 数学公式图片坐标位置
+                    gt_regions = np.genfromtxt(self._annopath % id, delimiter=',')
+                    gt_regions = gt_regions.astype(int)
 
-                # if there is only one entry convert it to correct form required
-                if len(gt_regions.shape) == 1:
-                    gt_regions = gt_regions.reshape(1, -1)
+                    # if there is only one entry convert it to correct form required
+                    if len(gt_regions.shape) == 1:
+                        gt_regions = gt_regions.reshape(1, -1)
 
-                self.math_ground_truth[id[1]] = gt_regions
-                self.is_math[id[1]] = True
+                    self.math_ground_truth[id[1]] = gt_regions
+                    self.is_math[id[1]] = True
+
+                if osp.exists(self._pic_annopath % id):
+                    # 图片坐标位置
+                    gt_regions = np.genfromtxt(self._pic_annopath % id, delimiter=',')
+                    gt_regions = gt_regions.astype(int)
+
+                    # if there is only one entry convert it to correct form required
+                    if len(gt_regions.shape) == 1:
+                        gt_regions = gt_regions.reshape(1, -1)
+
+                    self.pic_ground_true[id[1]] = gt_regions
             else:
                 self.math_ground_truth[id[1]] = np.array([-1,-1,-1,-1]).reshape(1,-1)
+                self.pic_ground_true[id[1]] = np.array([-1,-1,-1,-1]).reshape(1,-1)
+
                 self.is_math[id[1]] = False
 
 
@@ -202,7 +179,18 @@ class GTDBDetection(data.Dataset):
         y_l = metadata[2]
         x_h = x_l + self.window
         y_h = y_l + self.window
-        current_page_boxes = copy.deepcopy(self.math_ground_truth[metadata[0]])
+
+        math_boxes = copy.deepcopy(self.math_ground_truth[metadata[0]])
+        pic_boxes = copy.deepcopy(self.pic_ground_true[metadata[0]])
+
+        # 增加数学公式标签, 标签值为 1， 
+
+        # current_page_boxes = copy.deepcopy(self.math_ground_truth[metadata[0]])
+        # print('math box shape:', math_boxes.shape)
+        current_page_boxes = np.vstack((math_boxes,pic_boxes))
+        # print('current page boxes shape:', current_page_boxes.shape)
+        # current_page_boxes = math_boxes
+
         targets = []
         image_box = [x_l, y_l, x_h, y_h]
         # if math intersects only consider the region which
@@ -232,7 +220,7 @@ class GTDBDetection(data.Dataset):
         # This avoids IndexError: too many indices for array
         # TODO: refactor in future
         if len(targets) == 0:
-            targets = [[-1,-1,-1,-1]]
+            targets = [[-1,-1,-1,-1,1]]
 
         return targets
 
@@ -293,33 +281,46 @@ if __name__ == '__main__':
     # 注意GTDBAnnotationTransform  [box[0]/width, box[1]/height, box[2]/width, box[3]/height, 0]
     dataset = GTDBDetection(args, args.training_data, split='train',
                             # transform=SSDAugmentation(cfg['min_dim'],mean=MEANS)
-                            transform = GTDBTransform(data_root=args.root_path,size=cfg['min_dim'],mean=MEANS),
+                            transform = None,
+                            # transform = GTDBTransform(data_root=args.root_path,size=cfg['min_dim'],mean=MEANS),
                             target_transform = GTDBAnnotationTransform()
                             # target_transform = None
                             )    
 
 
-    # for index in range(len(dataset)):
-    #     im, gt, metadata = dataset[index]
+    for index in range(len(dataset)):
+        im, gt, metadata = dataset[index]
+        print('im shape:', im.shape)
+        # print('gt :', gt)
+        # print('metada:', metadata)
     #     # im = im.astype(np.int)
     #     # print(metadata)
     #     # print(gt)
     #     im = im.astype(np.int)
     #     print(im.shape)
-    #     height, width, depth = im.shape
-    #     for box in gt:
-    #         x0,y0,x1,y1,_ = box
+        height, width, depth = im.shape
+        for box in gt:
+            x0,y0,x1,y1,label = box
     #         # print('boxes :',int(x0*width),int(y0*height),int(x1*width), int(y1*height))
-    #         cv2.rectangle(im, (int(x0*width),int(y0*height)), (int(x1*width), int(y1*height)), (0, 0, 255), 1)
+            if label == 1:
+                cv2.rectangle(im, (int(x0*width),int(y0*height)), (int(x1*width), int(y1*height)), (0, 0, 255), 1)
+            elif label == 2:
+                cv2.rectangle(im, (int(x0*width),int(y0*height)), (int(x1*width), int(y1*height)), (0, 255, 0), 1)
     #     # print(im.shape)
-    #     plt.imshow(im)
-    #     plt.show()
+        plt.imshow(im)
+        plt.show()
+
+
+'''
+
     data_loader = data.DataLoader(dataset, 3,
                                   num_workers=args.num_workers,
                                   shuffle=True, collate_fn=detection_collate,
                                   pin_memory=True)    
 
     for imgs, targets, labels in data_loader:
-        print(imgs.size())    
-        print(targets)
+        print('image size :', imgs.size())    
+        print('targets :',targets)
+        print('labels :', labels)
 
+'''

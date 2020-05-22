@@ -50,7 +50,7 @@ class SSD(nn.Module):
         self.loc = nn.ModuleList(head[0])
         self.conf = nn.ModuleList(head[1])
 
-        if phase == 'test':
+        if phase == 'test' or phase == 'use':
             self.softmax = nn.Softmax(dim=-1)
             self.detect = Detect(cfg, 
                                     num_classes, 
@@ -135,7 +135,7 @@ class SSD(nn.Module):
         # loc cat size:  torch.Size([1, 152908]) torch.Size([1, 76454])
         # print('loc cat size: ', loc.size(), conf.size())
         # print('phase :', self.phase)
-        if self.phase == "test":
+        if self.phase == "test" or self.phase == 'use':
             with torch.no_grad():
                 output, boxes, scores = self.detect(
                     loc.view(loc.size(0), -1, 4),                   # loc preds
@@ -239,7 +239,7 @@ def multibox(args, vgg, extra_layers, cfg, size, num_classes):
 
 
 def build_ssd(args, phase, cfg, gpu_id, size=300, num_classes=21):
-    if phase != "test" and phase != "train":
+    if phase != "test" and phase != "train" and phase != 'use':
         print("ERROR: Phase: " + phase + " not recognized")
         return
 

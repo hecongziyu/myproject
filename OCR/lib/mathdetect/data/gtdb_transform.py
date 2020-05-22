@@ -43,7 +43,7 @@ class ToAbsoluteCoords(object):
 class ToPercentCoords(object):
     def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
-        print('penc image shape:', image.shape)
+        # print('penc image shape:', image.shape)
         boxes[:, 0] /= width
         boxes[:, 2] /= width
         boxes[:, 1] /= height
@@ -81,7 +81,7 @@ class Resize(object):
         self.size = size
 
     def __call__(self, image, boxes=None, labels=None):
-        print('resize img shape:', image.shape)
+        # print('resize img shape:', image.shape)
         image = cv2.resize(image, (self.size,self.size), interpolation=cv2.INTER_AREA)
         return image, boxes, labels
 
