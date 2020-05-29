@@ -171,8 +171,8 @@ def gen_latex_pdf(data_root, file_name, texts, latexs,max_phrase=10,latex_box_co
         if np.random.randint(3) == 0:
             pos = np.random.randint(1,len(_text))
             insert_pic_file = pic_files[np.random.randint(len(pic_files))]
-            picture = '\\fcolorbox{white}{white}{\includegraphics[scale=0.05]{%s}}' % (insert_pic_file)
-            color_picture = '\\fcolorbox{blue}{blue}{\includegraphics[scale=0.05]{%s}}' % (insert_pic_file)
+            picture = '\\fcolorbox{white}{white}{\includegraphics[scale=0.2]{%s}}' % (insert_pic_file)
+            color_picture = '\\fcolorbox{blue}{blue}{\includegraphics[scale=0.2]{%s}}' % (insert_pic_file)
             _text.insert(pos, picture)
             _box_color_text.insert(pos, color_picture)
 
@@ -185,8 +185,8 @@ def gen_latex_pdf(data_root, file_name, texts, latexs,max_phrase=10,latex_box_co
     # if np.random.randint(2) == 0:
     insert_pic_file = pic_files[np.random.randint(len(pic_files))]
     pos = np.random.randint(1, len(doc_text))
-    picture = '\\begin{figure}[ht] \centering \\fcolorbox{white}{white}{\includegraphics[scale=0.2]{%s}} \end{figure}' % insert_pic_file
-    color_picture = '\\begin{figure}[ht] \centering \\fcolorbox{blue}{blue}{\includegraphics[scale=0.2]{%s}} \end{figure}' % insert_pic_file
+    picture = '\\begin{figure}[ht] \centering \\fcolorbox{white}{white}{\includegraphics[scale=0.5]{%s}} \end{figure}' % insert_pic_file
+    color_picture = '\\begin{figure}[ht] \centering \\fcolorbox{blue}{blue}{\includegraphics[scale=0.5]{%s}} \end{figure}' % insert_pic_file
 
     # print(color_picture)    
 

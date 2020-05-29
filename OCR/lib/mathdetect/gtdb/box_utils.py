@@ -47,6 +47,7 @@ def merge(box1, box2):
     final_box[1] = min(box1[1], box2[1])  # top
     final_box[2] = max(box1[2], box2[2])  # left + width
     final_box[3] = max(box1[3], box2[3])  # top + height
+    
 
     return final_box
 

@@ -67,7 +67,7 @@ exp_cfg = {
     },
 
     'ssd300': {
-        'num_classes': 2,
+        'num_classes': 3,
         'lr_steps': (80000, 100000, 120000),
         'max_iter': 132000,
         'feature_maps': [38, 19, 10, 5, 3, 1],

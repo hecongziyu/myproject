@@ -20,8 +20,8 @@ def init_args(params=None):
                         help='Pretrained base model')
     parser.add_argument('--batch_size', default=5, type=int,
                         help='Batch size for training')
-    # parser.add_argument('--resume', default='D:\\PROJECT_TW\\git\\data\\mathdetect\\ckpts\\weights_math_detector\\best_ssd512.pth', type=str,
-    parser.add_argument('--resume', default=None, type=str,    
+    parser.add_argument('--resume', default='D:\\PROJECT_TW\\git\\data\\mathdetect\\ckpts\\weights_math_detector\\best_ssd512.pth', type=str,
+    # parser.add_argument('--resume', default=None, type=str,    
                         help='Checkpoint state_dict file to resume training from')
     parser.add_argument('--start_iter', default=0, type=int,
                         help='Resume training at this iter')

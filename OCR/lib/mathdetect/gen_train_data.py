@@ -4,6 +4,10 @@ import argparse
 import numpy as np
 import random
 from utils.pdfutils import gen_latex_pdf,gen_latex_img_pos
+import shutil
+import cv2
+
+# 通过PDF，生成训练数据
 def gen_train_data(data_root, text_file, formula_file, begin_idx=0,gen_size=100):
     with open(os.path.sep.join([data_root, text_file]), 'r', encoding='utf8') as f:
         texts = f.readlines()
@@ -19,10 +23,29 @@ def gen_train_data(data_root, text_file, formula_file, begin_idx=0,gen_size=100)
             gen_latex_img_pos(data_root=data_root, file_name=str(idx),imgH=1024)    
             if idx % 10 == 0:
                 print('gen file :', idx)
-            # os.remove(os.path.sep.join([data_root,'pdf', f'{idx}.pdf']))
-            # os.remove(os.path.sep.join([data_root,'pdf', f'{idx}_color.pdf']))
+            os.remove(os.path.sep.join([data_root,'pdf', f'{idx}.pdf']))
+            os.remove(os.path.sep.join([data_root,'pdf', f'{idx}_color.pdf']))
         except Exception as e:
             print(e)
+
+# 特殊单个图形，只需根据单个图形的大小生成位置信息
+def gen_train_special_data(data_root, image_dir, type='m'):
+    file_lists = os.listdir(os.path.sep.join([data_root, image_dir]))
+    for idx, file_name in enumerate(file_lists):
+        if idx % 10 == 0:
+            print('生成特别训练数据：', idx)
+        src_file = os.path.sep.join([data_root, image_dir, file_name])
+        dest_file = os.path.sep.join([data_root, 'data', 'images','autogen',f'{type}_{idx}.png'])
+        shutil.copyfile(src_file, dest_file)
+        image = cv2.imread(dest_file, cv2.IMREAD_COLOR)
+        height, width , _ = image.shape
+        anno_dest_file = os.path.sep.join([data_root, 'data','annotations','autogen', f'{type}_{idx}.pmath' if type=='m' else f'{type}_{idx}.ppic'])
+        pos = np.array([[0,0,width,height,0 if type=='m' else 1]])
+        np.savetxt(anno_dest_file,pos,'%.3f', ',', )
+
+
+
+
 
 
 def split(full_list,shuffle=False,ratio=0.2):
@@ -71,9 +94,14 @@ if __name__ == '__main__':
     parser.add_argument('--formula_file', default='formuls.txt', type=str, help='数学公式文本')
     parser.add_argument('--gen_size', default='5',type=int,help='gen size')    
     args = parser.parse_args()
-    gen_train_data(data_root=args.data_root, 
-                    text_file=args.text_file, 
-                    formula_file=args.formula_file,
-                    begin_idx=1,
-                    gen_size=100)
+    # gen_train_data(data_root=args.data_root, 
+    #                 text_file=args.text_file, 
+    #                 formula_file=args.formula_file,
+    #                 begin_idx=1,
+    #                 gen_size=2000)
     # gen_train_txt(args.data_root, 'images', 'autogen')
+
+    # gen_train_special_data(data_root=args.data_root,image_dir='singleformula',type='m')
+    # gen_train_special_data(data_root=args.data_root,image_dir='picture',type='p')
+
+    gen_train_txt(args.data_root, 'images', 'autogen')

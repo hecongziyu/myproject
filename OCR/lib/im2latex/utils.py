@@ -92,13 +92,16 @@ def cal_loss(logits, targets):
     mask = (targets != padding)
 
     targets = targets.masked_select(mask)
+
     logits = logits.masked_select(
         mask.unsqueeze(2).expand(-1, -1, logits.size(2))
     ).contiguous().view(-1, logits.size(2))
+    
     logits = torch.log(logits)
 
     assert logits.size(0) == targets.size(0)
-
+    # print('logits:', torch.argmax(logits,dim=1))
+    # print('targets:', targets)
     loss = F.nll_loss(logits, targets)
     return loss
 
@@ -141,6 +144,9 @@ def cal_epsilon(k, step, method):
         See details in https://arxiv.org/pdf/1506.03099.pdf
     """
     assert method in ['inv_sigmoid', 'exp', 'teacher_forcing']
+
+    if step > 50:
+        step = 50
 
     if method == 'exp':
         return k**step

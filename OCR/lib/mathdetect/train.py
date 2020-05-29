@@ -95,7 +95,7 @@ def train(args):
 
     if args.resume:
         logging.debug('Resuming training, loading {}...'.format(args.resume))
-        ssd_net.load_state_dict(torch.load(args.resume))
+        ssd_net.load_state_dict(torch.load(args.resume,map_location=torch.device('cpu')))
     else:
         vgg_weights = torch.load(os.path.join(args.root_path, 'weights',args.basenet),map_location=torch.device('cpu'))
         logging.debug('Loading base network...')

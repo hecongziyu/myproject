@@ -34,7 +34,7 @@ def main():
                         help='data set root')
 
     parser.add_argument("--add_position_features", action='store_true',
-                        default=False, help="Use position embeddings or not")
+                        default=True, help="Use position embeddings or not")
     # training args
     parser.add_argument("--max_len", type=int,
                         default=150, help="Max size of formula")
@@ -43,7 +43,7 @@ def main():
     parser.add_argument("--cuda", action='store_true',
                         default=True, help="Use cuda or not")
     parser.add_argument("--batch_size", type=int, default=5)
-    parser.add_argument("--epoches", type=int, default=1000)
+    parser.add_argument("--epoches", type=int, default=5000)
     parser.add_argument("--lr", type=float, default=3e-4,
                         help="Learning Rate")
     parser.add_argument("--min_lr", type=float, default=3e-5,
@@ -60,7 +60,7 @@ def main():
 
     parser.add_argument("--lr_decay", type=float, default=0.5,
                         help="Learning Rate Decay Rate")
-    parser.add_argument("--lr_patience", type=int, default=3,
+    parser.add_argument("--lr_patience", type=int, default=50,
                         help="Learning Rate Decay Patience")
     parser.add_argument("--clip", type=float, default=2.0,
                         help="The max gradient norm")
@@ -72,6 +72,8 @@ def main():
                         help="The random seed for reproducing ")
     parser.add_argument("--from_check_point", action='store_true',
                         default=False, help="Training from checkpoint or not")
+
+    parser.add_argument("--image_height", type=int, default=128, help="图片高度")
 
     args = parser.parse_args()
     max_epoch = args.epoches
@@ -101,7 +103,7 @@ def main():
         #                     target_transform=None,max_len=512)
     train_loader = DataLoader(
         LatexDataset(args, data_file=args.data_file,split='train', 
-                     transform=LatexImgTransform(imgH=256, mean=MEANS,data_root=args.dataset_root),
+                     transform=LatexImgTransform(imgH=args.image_height, mean=MEANS,data_root=args.dataset_root),
                      max_len=args.max_len),
                      shuffle=True,
                      batch_size=args.batch_size,
@@ -110,7 +112,7 @@ def main():
                      num_workers=4)
     val_loader = DataLoader(
         LatexDataset(args, data_file=args.data_file,split='valid', 
-                     transform=LatexImgTransform(imgH=256, mean=MEANS,data_root=args.dataset_root),
+                     transform=LatexImgTransform(imgH=args.image_height, mean=MEANS,data_root=args.dataset_root),
                      max_len=args.max_len),
                      shuffle=True,
                      batch_size=args.batch_size,

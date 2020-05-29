@@ -136,34 +136,33 @@ class GTDBDetection(data.Dataset):
 
         # This function reads all the annotations for the training images
         for id in self.ids:
-            if osp.exists(self._annopath % id) or osp.exists(self._pic_annopath % id):
-                if osp.exists(self._annopath % id):
-                    # 数学公式图片坐标位置
-                    gt_regions = np.genfromtxt(self._annopath % id, delimiter=',')
-                    gt_regions = gt_regions.astype(int)
+            if osp.exists(self._annopath % id):
+                # 数学公式图片坐标位置
+                gt_regions = np.genfromtxt(self._annopath % id, delimiter=',')
+                gt_regions = gt_regions.astype(int)
 
-                    # if there is only one entry convert it to correct form required
-                    if len(gt_regions.shape) == 1:
-                        gt_regions = gt_regions.reshape(1, -1)
+                # if there is only one entry convert it to correct form required
+                if len(gt_regions.shape) == 1:
+                    gt_regions = gt_regions.reshape(1, -1)
 
-                    self.math_ground_truth[id[1]] = gt_regions
-                    self.is_math[id[1]] = True
-
-                if osp.exists(self._pic_annopath % id):
-                    # 图片坐标位置
-                    gt_regions = np.genfromtxt(self._pic_annopath % id, delimiter=',')
-                    gt_regions = gt_regions.astype(int)
-
-                    # if there is only one entry convert it to correct form required
-                    if len(gt_regions.shape) == 1:
-                        gt_regions = gt_regions.reshape(1, -1)
-
-                    self.pic_ground_true[id[1]] = gt_regions
+                self.math_ground_truth[id[1]] = gt_regions
+                self.is_math[id[1]] = True
             else:
-                self.math_ground_truth[id[1]] = np.array([-1,-1,-1,-1]).reshape(1,-1)
-                self.pic_ground_true[id[1]] = np.array([-1,-1,-1,-1]).reshape(1,-1)
-
+                self.math_ground_truth[id[1]] = np.array([-1,-1,-1,-1,-1]).reshape(1,-1)
                 self.is_math[id[1]] = False
+
+            if osp.exists(self._pic_annopath % id):
+                # 图片坐标位置
+                gt_regions = np.genfromtxt(self._pic_annopath % id, delimiter=',')
+                gt_regions = gt_regions.astype(int)
+                # if there is only one entry convert it to correct form required
+                if len(gt_regions.shape) == 1:
+                    gt_regions = gt_regions.reshape(1, -1)
+                self.pic_ground_true[id[1]] = gt_regions
+            else:
+                self.pic_ground_true[id[1]] = np.array([-1,-1,-1,-1,-1]).reshape(1,-1)
+
+                
 
 
     def __getitem__(self, index):
@@ -220,7 +219,7 @@ class GTDBDetection(data.Dataset):
         # This avoids IndexError: too many indices for array
         # TODO: refactor in future
         if len(targets) == 0:
-            targets = [[-1,-1,-1,-1,1]]
+            targets = [[-1,-1,-1,-1,-1]]
 
         return targets
 
@@ -229,26 +228,27 @@ class GTDBDetection(data.Dataset):
         metadata = self.metadata[index]
         image = self.images[metadata[0]]
 
-        x_l = metadata[1]
-        y_l = metadata[2]
-        x_h = x_l + min(self.window, image.shape[1]-x_l)
-        y_h = y_l + min(self.window, image.shape[0]-y_l)
+        # x_l = metadata[1]
+        # y_l = metadata[2]
+        # x_h = x_l + min(self.window, image.shape[1]-x_l)
+        # y_h = y_l + min(self.window, image.shape[0]-y_l)
 
-        cropped_image = np.full((self.window, self.window, image.shape[2]), 255)
-        cropped_image[:y_h-y_l, :x_h-x_l, :] = image[y_l: y_h, x_l: x_h, :]
+        # cropped_image = np.full((self.window, self.window, image.shape[2]), 255)
+        # cropped_image[:y_h-y_l, :x_h-x_l, :] = image[y_l: y_h, x_l: x_h, :]
 
-        return cropped_image
+        return image
         # return image
 
     def pull_item(self, index):
         metadata = self.metadata[index]
+        print('index --> ',index, ':', metadata)
         target = self.gen_targets(index)
         img = self.gen_image(index)
 
-        height, width, channels = img.shape
+        # height, width, channels = img.shape
 
         if self.target_transform is not None:
-            target = self.target_transform(target, width, height)
+            target = self.target_transform(target, self.window, self.window)
 
         if self.transform is not None:
             target = np.array(target)
@@ -273,7 +273,8 @@ if __name__ == '__main__':
     import torch.utils.data as data
 
     matplotlib.use('TkAgg')
-    fig = plt.figure(figsize=(20,18))
+    # fig = plt.figure(figsize=(20,18))
+    plt.figure(dpi=300)
     args = init_args()
     print('args:', args)
     # args.cfg math_gtdb_512
@@ -281,33 +282,26 @@ if __name__ == '__main__':
     # 注意GTDBAnnotationTransform  [box[0]/width, box[1]/height, box[2]/width, box[3]/height, 0]
     dataset = GTDBDetection(args, args.training_data, split='train',
                             # transform=SSDAugmentation(cfg['min_dim'],mean=MEANS)
-                            transform = None,
-                            # transform = GTDBTransform(data_root=args.root_path,size=cfg['min_dim'],mean=MEANS),
+                            # transform = None,
+                            transform = GTDBTransform(data_root=args.root_path,window=args.window,size=cfg['min_dim'],mean=MEANS),
                             target_transform = GTDBAnnotationTransform()
                             # target_transform = None
                             )    
 
 
-    for index in range(len(dataset)):
+    for index in range(5):
         im, gt, metadata = dataset[index]
-        print('im shape:', im.shape)
-        # print('gt :', gt)
-        # print('metada:', metadata)
-    #     # im = im.astype(np.int)
-    #     # print(metadata)
-    #     # print(gt)
-    #     im = im.astype(np.int)
-    #     print(im.shape)
+        print(index, ' ---> im shape:', im.shape)
+        im = im.astype(np.int)
         height, width, depth = im.shape
         for box in gt:
             x0,y0,x1,y1,label = box
-    #         # print('boxes :',int(x0*width),int(y0*height),int(x1*width), int(y1*height))
-            if label == 1:
+            if label == 0:
                 cv2.rectangle(im, (int(x0*width),int(y0*height)), (int(x1*width), int(y1*height)), (0, 0, 255), 1)
-            elif label == 2:
+            elif label == 1:
                 cv2.rectangle(im, (int(x0*width),int(y0*height)), (int(x1*width), int(y1*height)), (0, 255, 0), 1)
-    #     # print(im.shape)
         plt.imshow(im)
+        # plt.savefig('d:\\test.jpg',dpi=300)
         plt.show()
 
 

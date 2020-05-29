@@ -32,7 +32,8 @@ class Trainer(object):
         while self.epoch <= self.last_epoch:
             self.model.train()
             losses = 0.0
-            for imgs, tgt4training, tgt4cal_loss in self.train_loader:
+            batch_iterator = iter(self.train_loader)
+            for imgs, tgt4training, tgt4cal_loss in batch_iterator:
                 print('input imgs size :', imgs.size())
                 step_loss = self.train_step(imgs, tgt4training, tgt4cal_loss)
                 losses += step_loss
@@ -52,7 +53,7 @@ class Trainer(object):
             val_loss = self.validate()
             self.lr_scheduler.step(val_loss)
 
-            self.save_model('ckpt-{}-{:.4f}'.format(self.epoch, val_loss))
+            # self.save_model('ckpt-{}-{:.4f}'.format(self.epoch, val_loss))
             self.epoch += 1
             self.step = 0
 

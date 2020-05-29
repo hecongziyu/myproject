@@ -63,7 +63,7 @@ def latex_to_img(latex_text,family='Courier New', fontsize=40):
 
 def image_ract(image_array):
     x_array, y_array = np.where(image_array==1)
-    return x_array[np.argmin(x_array)] - 40 , y_array[np.argmin(y_array)] - 40 , x_array[np.argmax(x_array)] + 40, y_array[np.argmax(y_array)] + 40
+    return x_array[np.argmin(x_array)] - 5 , y_array[np.argmin(y_array)] - 5 , x_array[np.argmax(x_array)] + 5, y_array[np.argmax(y_array)] + 5
 
 
 def get_latex_image(latex_text):
@@ -122,6 +122,8 @@ def gen_latex_formula_batch(data_root,size=1000,file_name='latex_formul_normal.t
     # 生成vocab字典
 
     print('生成训练数据完成')
+
+
 
 
 if __name__ == '__main__':

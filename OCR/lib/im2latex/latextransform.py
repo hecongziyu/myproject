@@ -105,14 +105,15 @@ class SubtractMeans(object):
 #         return image, boxes, labels
 
 
-class Resize(object):
+class GenResize(object):
     def __init__(self, imgH=64):
         self.imgH = imgH
 
     def __call__(self, image):
         height, width, _ = image.shape
-        radio = self.imgH/height
-        image = cv2.resize(image, (int(width*radio),self.imgH), interpolation=cv2.INTER_AREA)
+        if height > self.imgH:
+            radio = self.imgH/height
+            image = cv2.resize(image, (int(width*radio),self.imgH), interpolation=cv2.INTER_AREA)
         return image
 
 
@@ -295,7 +296,8 @@ class BackGround(object):
         bg_img_file = os.path.sep.join([self.data_root, self.back_data_dir, bg_files[random.randint(0, len(bg_files))]])
         bg_img = cv2.imread(bg_img_file,cv2.IMREAD_UNCHANGED)
         bg_img = cv2.resize(bg_img, (width,height), interpolation=cv2.INTER_AREA)
-        bg_img[np.where(image<=128)] = 0
+        # bg_img[np.where(image<=246)] = np.random.randint(0,16,len(np.where(image<=246)[0]))
+        bg_img[np.where(image<=246)] = 0
         return bg_img
 
 '''文字膨胀处理, 暂不处理'''
@@ -308,47 +310,51 @@ class TxtBlur(object):
     pass      
 
 
+class RandomSize(object):
+    def __init__(self, min_radio=0.8, max_radio=1):
+        self.min_radio = min_radio
+        self.max_radio = max_radio
+
+
+    def __call__(self, image):
+        if random.randint(2):
+            radio = random.uniform(self.min_radio, self.max_radio)
+            height, width, _ = image.shape
+            image = cv2.resize(image, (int(width*radio),int(height * radio)), interpolation=cv2.INTER_AREA)
+        return image
+
+class ExpandWidth(object):
+    def __init__(self, imgH, max_width):
+        self.imgH = imgH
+        self.max_width = max_width
+
+    def __call__(self, image):
+
+        image_ext = np.ones((self.imgH, self.max_width, image.shape[2]),dtype=image.dtype) * PAD_TOKEN
+        image_ext[0:image.shape[0], 0:image.shape[1],:] = image
+        return image_ext
 
 
 
 class LatexImgTransform(object):
-    def __init__(self, imgH=64, mean=(104, 117, 123), data_root='./data'):
+    def __init__(self, imgH=64, max_width=600,mean=(104, 117, 123), data_root='./data'):
         self.mean = mean
         self.imgH = imgH
         self.data_root = data_root
+        self.max_width = max_width
         # print('mean :', self.mean)
 
         self.augment = Compose([
-            ConvertFromInts(),
-            # ToAbsoluteCoords(),  # ToAbsoluteCoords 转成绝对坐标，生成的box进行了缩放
+            ConvertFromInts()
+            # ExpandWidth(self.imgH, self.max_width)
+            # RandomSize(),
             # PhotometricDistort(), # PhotometricDistort 给数据增加噪声
-            Expand(self.mean),     # 随机扩展图片, mean 中间颜色
+            # Expand(self.mean),     # 随机扩展图片, mean 中间颜色
             # RandomSampleCrop(),
-            # ToPercentCoords(),   # x1/width, x2/width, y1/height, y2/height
-            Resize(self.imgH),   # 将变换后图片转成 size * size
-            BackGround(self.data_root)
+            # GenResize(self.imgH)   # 将变换后图片转成 size * size, 注意gen resize需要修改，因为图片放大后，宽度会超出600，这种情况会有问题
+
+            # BackGround(self.data_root)
         ])
 
     def __call__(self, img):
         return self.augment(img)
-
-
-# class LatexTextTransform(object):
-#     def __init__(self, sign2id,max_len=512):
-#         self.sign2id = sign2id
-#         self.max_len = max_len
-
-#     def __call__(self, latex):
-#         formula = latex.replace('\n','').split()
-#         tgt4training = self.formula2id(['<s>'] + formula)
-#         tgt4cal_loss = self.formula2id(formula + ['</s>'])
-#         return tgt4training, tgt4cal_loss
-
-#     def formula2id(self, formula):
-#         array = np.ones(self.max_len)
-#         fid = [self.sign2id.get(x,UNK_TOKEN) for x in formula]
-#         array[0:len(fid)] = fid
-#         return array
-
-
-

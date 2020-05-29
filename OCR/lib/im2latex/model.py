@@ -106,7 +106,7 @@ class Im2LatexModel(nn.Module):
         # encoding
         encoded_imgs = self.encode(imgs)  # [B, H*W, 512]
 
-        # init decoder's states  ？？？？？？？？？？
+        # init decoder's states  
         dec_states, o_t = self.init_decoder(encoded_imgs)
         max_len = formulas.size(1)
         logits = []
@@ -127,6 +127,7 @@ class Im2LatexModel(nn.Module):
         encoded_imgs = encoded_imgs.permute(0, 2, 3, 1)  # [B, H', W', 512]
         B, H, W, _ = encoded_imgs.shape
         encoded_imgs = encoded_imgs.contiguous().view(B, H*W, -1)
+        print('add pos feat:', self.add_pos_feat)
         if self.add_pos_feat:
             encoded_imgs = add_positional_features(encoded_imgs)
         return encoded_imgs

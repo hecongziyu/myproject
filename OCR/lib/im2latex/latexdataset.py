@@ -21,27 +21,19 @@ MEANS = (246, 246, 246)
 2、找到该批次图片宽度最大图片，其它图片填充空白区域到相同
 '''
 def collate_fn(sign2id,batch,max_img_width=600):
-    transform = transforms.ToTensor()
     size = batch[0][0].shape
-    batch = [img_formula for img_formula in batch if img_formula[0].shape[1] < max_img_width]
-    # print(len(batch))
+    # print('size :', size)
+    batch = [img_formula for img_formula in batch if img_formula[0].shape == size]
 
-    # for imt in batch:
-    #     print('origin image size: ', imt[0].shape)
-
-    # image_widths = [x[0].shape[1] for x in batch]
-    # max_width = max(image_widths)
-
-    # print('max width :', max_width)
-    # batch = [img_formula for img_formula in batch if img_formula[0].shape == size]
-    # sort by the length of formula
+    transform = transforms.ToTensor()
     batch.sort(key=lambda img_formula: len(img_formula[1].split()), reverse=True)
-    imgs, formulas = zip(*batch)
-    imgs = [expand_width(x, size[0], max_img_width) for x in imgs]    
+    imgs = []
+    formulas = []
+    for sample in batch:
+        imgs.append(sample[0])
+        formulas.append(sample[1])
     formulas = [formula.split() for formula in formulas]
-    # targets for training , begin with START_TOKEN
     tgt4training = formulas2tensor(add_start_token(formulas), sign2id)
-    # targets for calculating loss , end with END_TOKEN
     tgt4cal_loss = formulas2tensor(add_end_token(formulas), sign2id)
     imgs = [transform(x) for x in imgs]    
     imgs = torch.stack(imgs, dim=0)
@@ -148,6 +140,8 @@ if __name__ == '__main__':
     from latextransform import LatexImgTransform
     from matplotlib import pyplot as plt
     from build_vocab import Vocab, load_vocab
+    import time
+    import shutil
 
 
     MEANS = (246, 246, 246)
@@ -159,16 +153,27 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     vocab = load_vocab(args.dataset_root)
-    latex_ds = LatexDataset(args, data_file=args.data_file,split='test',
-                            transform=LatexImgTransform(imgH=256, mean=MEANS,data_root=args.dataset_root),
+    latex_ds = LatexDataset(args, data_file=args.data_file,split='train',
+                            transform=LatexImgTransform(imgH=128, max_width=600, mean=MEANS,data_root=args.dataset_root),
                             target_transform=None,max_len=512)
 
-    # for index in range(len(latex_ds)):
-    #     image, latex = latex_ds[index]
-    #     print('latex :', latex, ' image size:', image.shape, '\n')
-    #     print('image: \n', image)
-    #     plt.imshow(image)
-    #     plt.show()
+    tmp_path = 'D:\\PROJECT_TW\\git\\data\\tmp'
+    
+    if os.path.exists(tmp_path):
+        shutil.rmtree(tmp_path)
+    if not os.path.exists(tmp_path):
+        os.mkdir(tmp_path)
+
+    for index in range(5):
+        image, latex = latex_ds[index]
+        image = image.astype(np.int)
+        # print('latex :', latex, ' image size:', image.shape, '\n')
+        # print('image: \n', image)
+        # plt.imshow(image)
+        # plt.savefig(os.path.sep.join([tmp_path,f'{index}.png']))
+        cv2.imwrite(os.path.sep.join([tmp_path,f'{index}.png']),image)
+
+        # plt.show()
     use_cuda = False
 
     data_loader = DataLoader(latex_ds,
@@ -176,9 +181,24 @@ if __name__ == '__main__':
         collate_fn=partial(collate_fn, vocab.sign2id),
         pin_memory=True if use_cuda else False,
         num_workers=1)
-    data_iter = enumerate(data_loader)
+    
 
     # for idx in range(len(data_loader)):
         # imgs, tgt4training, tgt4cal_loss = data_iter.next()
-    # for imgs, tgt4training, tgt4cal_loss in data_loader:
-        # print(imgs.size(), tgt4training.size(), tgt4cal_loss.size())
+    # for idx in range(10):
+    start_time = time.time()
+    data_iter = iter(data_loader)    
+    print('load iter time ：',(time.time() - start_time))
+    for imgs, tgt4training, tgt4cal_loss in data_iter:
+        print(imgs.size(), tgt4training.size(), tgt4cal_loss.size())
+        print(tgt4training)
+        print(tgt4cal_loss)
+
+    # for iteration in range(0, 100):
+    #     try:
+    #         imgs, tgt4training, tgt4cal_loss = next(data_iter)
+    #     except StopIteration:
+    #          data_iter = iter(data_loader)
+    #          imgs, tgt4training, tgt4cal_loss = next(data_iter)
+
+    #     print(imgs.size(), tgt4training.size(), tgt4cal_loss.size())
