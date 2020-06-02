@@ -7,6 +7,10 @@ from matplotlib import pyplot as plt
 import torch
 import shutil
 
+'''
+产生训练数据， 数据通过OpenCV将字符从原始图片中分开，并记录其坐标位置，然后再进行手工清洗。
+'''
+
 def clean_env(data_root, split='SampleA', dest_dir=None,background_dir='bg'):
     pass
     # dest_path = os.path.sep.join([data_root, dest_dir, split])
@@ -110,12 +114,14 @@ def clean_gen_data(data_root,dest_dir, split='SampleA'):
     清理坐标文件中错误的坐标信息
     后期，检测图片文件中像素点少于标准值范围内的图片
     '''
+    sample_image_files = os.listdir(os.path.sep.join([data_root, dest_dir, split]))
     pos_data_file = os.path.sep.join([data_root, dest_dir, f'{split}_pos.txt'])
     with open(pos_data_file, 'r', encoding='utf-8') as f:
-        pos_data = f.readLines()
-
-    print(pos_data)
+        pos_data = f.readlines()
+    pos_data = ['{}|{}\n'.format(x[0],x[1]) for x in [ y.strip().split('|') for y in pos_data] if x[0] in sample_image_files]
     
+    with open(os.path.sep.join([data_root, dest_dir, f'{split}_pos_clean.txt']), 'w', encoding='utf-8') as f:        
+        f.write(''.join(pos_data))
 
 
 
@@ -131,10 +137,11 @@ if __name__ == '__main__':
     torch.manual_seed(2020)
     torch.cuda.manual_seed(2020)
     # clean_env(args.data_root, args.split, args.dest_dir)
-    # splits = ['SampleA','SampleB','SampleC','SampleD','SampleE','SampleF','SampleG']
+    splits = ['SampleA','SampleB','SampleC','SampleD','SampleE','SampleH','SampleZ']
     # for split in splits:
     #     gen_train_images(data_root=args.data_root, split=split, 
     #                     image_height=args.image_height,dest_dir=args.dest_dir)
 
-
+    for split in splits:
+        clean_gen_data(data_root=args.data_root, dest_dir=args.dest_dir, split=split)
 

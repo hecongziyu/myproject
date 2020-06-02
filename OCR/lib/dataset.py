@@ -69,12 +69,10 @@ class lmdbDataset(Dataset):
         return (img, label)
 
 class resizeNormalize(object):
-
     def __init__(self, size, interpolation=Image.BILINEAR):
         self.size = size
         self.interpolation = interpolation
         self.toTensor = transforms.ToTensor()
-
     def __call__(self, img):
         img = img.resize(self.size, self.interpolation)
         img = self.toTensor(img)
