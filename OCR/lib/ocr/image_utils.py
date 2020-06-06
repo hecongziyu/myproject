@@ -55,22 +55,21 @@ def detect_char_area(image_gray_data, min_area = 80,min_y_diff=5, cent_y=None):
             if (y+h)/2 > img.shape[0]*0.1:
                 cnts.append([x,y,x+w,y+h, cv2.contourArea(cnt)])
     areas = np.array(cnts,dtype=np.uint8)
-    # if areas is None or len(areas) == 0:
-    #     return 0,0,0,0
-    # areas_max = np.argmax(areas[:,4], axis=0)
-    # x1,y1,x2,y2,_ = areas[areas_max]
-
-    # print('len areas:', len(areas))
-    # print('areas:', areas)
-    # print('cent_y:', cent_y)
-
-    # if cent_y is None:
-    #     cent_y = y1 + int((y2-y1)/2)
-    
-    # areas_cents = [int((x[3] - x[1])/2 + x[1])  for x in areas]
-    # areas_filter_idx = np.where(abs(areas_cents - cent_y) < min_y_diff)
-    x1,y1,x2,y2 = np.min(areas[:,0]),np.min(areas[:,1]),np.max(areas[:,2]),np.max(areas[:,3])
+    if areas is None or len(areas) == 0:
+        return 0,0,0,0
+    areas_max = np.argmax(areas[:,4], axis=0)
+    x1,y1,x2,y2,_ = areas[areas_max]
+    cent_y = y1 + int((y2-y1)/2)
+    areas_cents = [int((x[3] - x[1])/2 + x[1])  for x in areas]
+    areas_filter_idx = np.where(abs(areas_cents - cent_y) < min_y_diff)
+    x1,y1,x2,y2 = np.min(areas[areas_filter_idx,0]),np.min(areas[areas_filter_idx,1]),np.max(areas[areas_filter_idx,2]),np.max(areas[areas_filter_idx,3])
+    y_bias = int(img.shape[0]*0.1)
+    x1 = min(x1,1)
+    y1 = max(y1-y_bias,0)
+    x2 = max(x2,img.shape[1] - 1)
+    y2 = min(y2+y_bias,img.shape[0])
     return x1,y1,x2,y2
+
 
 
 def detect_char_pos(image_gray_data, min_area = 80,min_y_diff=5):

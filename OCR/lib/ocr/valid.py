@@ -60,15 +60,15 @@ def normalize(image):
     # print('in -->', image.shape, ',', image, )
     image = toTensor(image)
     # print('before -->', image)
-    image.sub_(0.5).div_(0.5)
+    # image.sub_(0.5).div_(0.5)
     # print('after -->', image)
     return image
 
-def valid(net,image_path, image_height,alpha, need_detect_char=True, need_dilate=False,convert_to_bin=True,channel=1):
+def valid(net,image_path, image_height,alpha, need_detect_char=False, need_dilate=False,convert_to_bin=True,channel=1):
     converter = strLabelConverter(alpha)
     image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-    scale =  float(image_height) / image.shape[0]
-    image = cv2.resize(image,(0,0), fx=scale, fy=scale, interpolation = cv2.INTER_AREA)
+    print(image.shape)
+
     if need_detect_char:
         image_gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
         image_gray_area = image_gray.shape[0] * image_gray.shape[1]
@@ -77,60 +77,69 @@ def valid(net,image_path, image_height,alpha, need_detect_char=True, need_dilate
         if np.sum([x1,y1,x2,y2]) == 0:
             return ""
         image = image_gray[y1:y2,x1:x2]
+    else:
+        print('No detect_char_area')
+        image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 
-    plt.imshow(image,'gray')
-    plt.show()
+    # plt.imshow(image,'gray')
+    # plt.show()
+    scale =  float(image_height) / image.shape[0]
+    image = cv2.resize(image,(0,0), fx=scale, fy=scale, interpolation = cv2.INTER_NEAREST)
 
-    if image.shape[0] != image_height:
-        scale =  float(image_height) / image.shape[0]
-        image = cv2.resize(image,(0,0), fx=scale, fy=scale, interpolation = cv2.INTER_AREA)
+    image = normalize(image)
+    image = image.unsqueeze(0)
 
-       
-    # print('detect img shape -->', image.shape)
-    # 将原图转成二值化
-    if convert_to_bin:
-        # image_gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-        # image = cv2.resize(image,(0,0), fx=scale, fy=scale, interpolation = cv2.INTER_AREA)
-        if need_dilate:
-            image = convert_img_bin(image, need_dilate=True,thread_pre=thread_pre)
-        else:
-            image = convert_img_bin(image,thread_pre=11)
-        plt.imshow(image,'gray')
-        plt.show()
-        image = image[:,:,np.newaxis]
-
-        # # print('convert img shape -->', image.shape)
-        
-        # # print('before -->', image.shape)
-        image = normalize(image)
-        # # print('normalize-->', image.shape)
-        image = image.unsqueeze(0)
-        # # print('unsqueeze -->', image.shape)
-        output = net(image)
-        # # print('output -->', output.size())
-        _,preds = output.max(2)
-        preds = preds.squeeze(-2)
-        preds = preds.view(-1)
-        preds_size = Variable(torch.IntTensor([preds.size(0)]))
-        words = converter.decode(preds.data, preds_size, raw=False)
-        print('words:', words)
-
+    output = net(image)
+    _,preds = output.max(2)
+    preds = preds.squeeze(-2)
+    preds = preds.view(-1)
+    preds_size = Variable(torch.IntTensor([preds.size(0)]))
+    words = converter.decode(preds.data, preds_size, raw=False)
+    
+    # print('words:', words)
+    return words
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="OCR Evaluating Program")
-    parser.add_argument('--model_name',default='acrnn_best.pkh', type=str, help='path of the evaluated model')
-    parser.add_argument('--alpha', default='abcdefghz')
+    parser.add_argument('--model_name',default='ocr_best.pt', type=str, help='path of the evaluated model')
+    parser.add_argument('--alpha', default='abcde')
     parser.add_argument('--image_file',default='5.png', type=str, help='path of the evaluated model')
     parser.add_argument('--data_root',default='D:\\PROJECT_TW\\git\\data\\ocr', type=str, help='path of the evaluated model')
     parser.add_argument("--image_height", type=int, default=32, help="图片高度")
 
 
     args = parser.parse_args()
-    torch.manual_seed(2020)
-    torch.cuda.manual_seed(2020)
+    # torch.manual_seed(2020)
+    # torch.cuda.manual_seed(2020)
 
     net = CRNNClassify(imgH=args.image_height,nc=1,nclass=len(args.alpha)+1,nh=256)
     net.load_state_dict(torch.load(os.path.sep.join([args.data_root,'weights',args.model_name]),map_location=torch.device('cpu')))
-    valid(net=net, image_path=os.path.sep.join([args.data_root,'images',args.image_file]), 
-        image_height=args.image_height,alpha=args.alpha)
+
+    # split_lists = ['A','B','C','D','E']
+    # pred_result = {}
+    # image_root = 'D:\\PROJECT_TW\\git\\data\\ocr\\images'
+    # for split in split_lists:
+    #     file_lists = os.listdir(os.path.sep.join([image_root,f'Sample{split}']))
+    #     correct = 0
+    #     for idx, file_name in enumerate(file_lists):
+    #         try:
+    #             if idx % 100 == 0:
+    #                 print('{}, total {}, correct {}'.format(split, len(file_lists), correct))
+    #             image_path = os.path.sep.join([image_root,f'Sample{split}', file_name])
+    #             word = valid(net=net, image_path=image_path, 
+    #                 image_height=args.image_height,alpha=args.alpha)
+    #             # print(f'{file_name}', ' pred word ', word)
+    #             if word.upper() == split:
+    #                 correct += 1
+
+    #         except Exception as x:
+    #             # pass
+    #             print(x)
+
+    #     pred_result[split] = {'total':len(file_lists), 'correct':correct}
+    # print('pred result:', pred_result)
+
+    word = valid(net=net, image_path=r'D:\\img\\exam\\Sample\\bad\\15709.png', 
+                 image_height=args.image_height,alpha=args.alpha)    
+    print('word -->',word)

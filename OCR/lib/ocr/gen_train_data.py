@@ -115,10 +115,19 @@ def clean_gen_data(data_root,dest_dir, split='SampleA'):
     后期，检测图片文件中像素点少于标准值范围内的图片
     '''
     sample_image_files = os.listdir(os.path.sep.join([data_root, dest_dir, split]))
+    origin_image_files = os.listdir(os.path.sep.join([data_root, 'images', split]))
+
+    all_images_files = [x for x in sample_image_files if x in origin_image_files]
+
+
+    # print(all_images_files)
+
     pos_data_file = os.path.sep.join([data_root, dest_dir, f'{split}_pos.txt'])
+
     with open(pos_data_file, 'r', encoding='utf-8') as f:
         pos_data = f.readlines()
-    pos_data = ['{}|{}\n'.format(x[0],x[1]) for x in [ y.strip().split('|') for y in pos_data] if x[0] in sample_image_files]
+
+    pos_data = ['{}|{}\n'.format(x[0],x[1]) for x in [ y.strip().split('|') for y in pos_data] if x[0] in all_images_files]
     
     with open(os.path.sep.join([data_root, dest_dir, f'{split}_pos_clean.txt']), 'w', encoding='utf-8') as f:        
         f.write(''.join(pos_data))
