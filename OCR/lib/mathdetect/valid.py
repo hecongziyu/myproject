@@ -8,8 +8,10 @@ import datetime
 from utils import helpers
 
 def valid(args):
-    args.cfg = 'math_gtdb_512'
-    weights_path = 'D:\\PROJECT_TW\\git\\data\\mathdetect\\ckpts\\weights_math_detector\\best_ssd512.pth'
+    # args.cfg = 'math_gtdb_512'
+    args.cfg = 'ssd300'
+    # weights_path = 'D:\\PROJECT_TW\\git\\data\\mathdetect\\ckpts\\weights_math_detector\\best_ssd512.pth'
+    weights_path = 'D:\\PROJECT_TW\\git\\data\\mathdetect\\ckpts\\weights_math_detector\\best_ssd300.pth'
     # print(args)
     cfg = exp_cfg[args.cfg]
     gpu_id = 0
@@ -18,7 +20,8 @@ def valid(args):
         logging.debug('Using GPU with id ' + str(gpu_id))
         torch.cuda.set_device(gpu_id)
 
-    net = build_ssd(args, 'use', cfg, gpu_id, 512, 3)
+    net = build_ssd(args, 'use', cfg, gpu_id, 300, 3)
+    print(net)
     mod = torch.load(weights_path,map_location=torch.device('cpu'))
     net.load_state_dict(mod)
     net.eval()    
@@ -31,7 +34,8 @@ def valid(args):
     stride = 0.01
     stepx = 200
     stepy = 400
-    size = 512
+    # size = 512
+    size = 300
     image_path = 'D:\\1044.png'
     image = cv2.imread(image_path, cv2.IMREAD_COLOR) 
     print('image shape:', image.shape)

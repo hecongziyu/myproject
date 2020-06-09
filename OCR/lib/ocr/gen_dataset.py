@@ -17,7 +17,7 @@ import argparse
 3、原始图片
 4、字符、坐标位置
 '''
-alpha = 'abcde'
+alpha = 'abcdefgh'
 
 def random_alpha(size = 100):
     alpha_list = []
@@ -90,6 +90,24 @@ def createBgImageCache(env, data_root, dest_dir, bgImageLists):
     writeCache(env, cache)
 
 
+# 空图片
+def createCleanImageCache(env, data_root, dest_dir, cleanImageLists):
+    cache = {}
+    print('import clean images, ', len(cleanImageLists))
+    count = 0
+    for idx in tqdm(range(len(cleanImageLists)),ncols=150,bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'):
+        try:
+            image_bin = readImage(os.path.sep.join([data_root, dest_dir, 'Empty', cleanImageLists[idx]]))
+            image_key = f'clean_{count}'
+            cache[image_key] = image_bin
+            count += 1
+        except Exception as e:
+            print('import clean image error: ', e)
+    print('import clean message number:', count)
+    cache[f'clean_num_samples'] = str(count).encode()
+    writeCache(env, cache)        
+
+
 def createLabelCache(env, train_data, valid_data):
     cache = {}
     for idx, label in enumerate(train_data):
@@ -115,7 +133,8 @@ def readImage(image_file):
     return image_bin
 
 
-def createDataset(data_root,dest_dir,train_data, valid_data, charImageLists, charPosLists, bgImageLists, originImageLists):
+def createDataset(data_root,dest_dir,train_data, valid_data, charImageLists, 
+        charPosLists, bgImageLists, originImageLists, cleanImageLists):
     '''
     Create LMDB dataset for CRNN training.
     split : train, valid
@@ -125,10 +144,11 @@ def createDataset(data_root,dest_dir,train_data, valid_data, charImageLists, cha
     outputPath = os.path.sep.join([data_root, 'lmdb'])
     env = lmdb.open(outputPath, map_size=300511627)
     createCharImageCache(env, data_root, dest_dir, charImageLists)
-    createCharImagePosCache(env, data_root, dest_dir, ['SampleA', 'SampleB', 'SampleC', 'SampleD', 'SampleE'])
+    createCharImagePosCache(env, data_root, dest_dir, ['SampleA', 'SampleB', 'SampleC', 'SampleD', 'SampleE','SampleF','SampleG','SampleH'])
     createBgImageCache(env, data_root, dest_dir, bgImageLists)
     createOriginImageCache(env, data_root, 'images', originImageLists)
     createLabelCache(env, train_data, valid_data)
+    createCleanImageCache(env, data_root, dest_dir, cleanImageLists)
 
 
 def addTrainDataset(data_root,dest_dir,train_data, valid_data):
@@ -139,7 +159,7 @@ def addTrainDataset(data_root,dest_dir,train_data, valid_data):
 
 def get_char_image_lists(data_root, dest_dir, split_list=None):
     if split_list is None:
-        split_list = ['SampleA', 'SampleB', 'SampleC', 'SampleD', 'SampleE']
+        split_list = ['SampleA', 'SampleB', 'SampleC', 'SampleD', 'SampleE','SampleF','SampleG','SampleH']
     char_image_dict = {}
 
     for split in split_list:
@@ -161,20 +181,18 @@ if __name__ == '__main__':
     # torch.manual_seed(2020)
     # torch.cuda.manual_seed(2020)
 
-    # readImageAndConvert2Gray('D:\\PROJECT_TW\\git\\data\\ocr\\dest\\bg\\bg_A_1327.png')
     train_data = random_alpha(500000)
     valid_data = random_alpha(20000)
 
     char_image_lists = get_char_image_lists(args.data_root, 'dest')
     bg_image_lists = get_bg_images_lists(args.data_root, 'dest')
     origin_image_lists = get_char_image_lists(args.data_root,'images')
-    # print('origin_image_lists len :', len(origin_image_lists))
-    # # print(len(char_image_lists['SampleA']))
+    clean_image_lists = os.listdir(os.path.sep.join([args.data_root,'dest','Empty']))
 
     createDataset(data_root=args.data_root, dest_dir='dest', train_data=train_data,
             valid_data=valid_data, charImageLists=char_image_lists, charPosLists=None,
-            bgImageLists=bg_image_lists, originImageLists=origin_image_lists)
+            bgImageLists=bg_image_lists, originImageLists=origin_image_lists, cleanImageLists=clean_image_lists)
 
-    # print(train_data)
 
-    # addTrainDataset(data_root=args.data_root, dest_dir='dest', train_data=train_data,valid_data=valid_data)
+
+    addTrainDataset(data_root=args.data_root, dest_dir='dest', train_data=train_data,valid_data=valid_data)

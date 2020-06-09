@@ -20,8 +20,8 @@ def init_args(params=None):
                         help='Pretrained base model')
     parser.add_argument('--batch_size', default=5, type=int,
                         help='Batch size for training')
-    parser.add_argument('--resume', default='D:\\PROJECT_TW\\git\\data\\mathdetect\\ckpts\\weights_math_detector\\best_ssd512.pth', type=str,
-    # parser.add_argument('--resume', default=None, type=str,    
+    # parser.add_argument('--resume', default='D:\\PROJECT_TW\\git\\data\\mathdetect\\ckpts\\weights_math_detector\\best_ssd512.pth', type=str,
+    parser.add_argument('--resume', default=None, type=str,    
                         help='Checkpoint state_dict file to resume training from')
     parser.add_argument('--start_iter', default=0, type=int,
                         help='Resume training at this iter')
@@ -59,7 +59,7 @@ def init_args(params=None):
                         help='It is the name of the experiment. Weights are saved in the directory with same name.')
     parser.add_argument('--layers_to_freeze', default=20, type=float,
                         help='Number of VGG16 layers to freeze')
-    parser.add_argument('--model_type', default=512, type=int,
+    parser.add_argument('--model_type', default=300, type=int,
                         help='Type of ssd model, ssd300 or ssd512')
     parser.add_argument('--suffix', default="_10", type=str,
                         help='Stride % used while generating images or dpi from which images was generated or some other identifier')
@@ -69,7 +69,7 @@ def init_args(params=None):
                         help='Validation data to use. This is list of file names, one per line')
     parser.add_argument('--use_char_info', default=False, type=bool,
                         help='Whether to use char position info and labels')
-    parser.add_argument('--cfg', default="math_gtdb_512", type=str,
+    parser.add_argument('--cfg', default="ssd300", type=str,
                         help='Type of network: either gtdb or math_gtdb_512')
     parser.add_argument('--loss_fun', default="fl", type=str,
                         help='Type of loss: either fl (focal loss) or ce (cross entropy)')

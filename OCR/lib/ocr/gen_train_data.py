@@ -66,6 +66,17 @@ def convert_bk_image(image, image_height=32):
     image = convert_img_bin(image,thread_pre=11)
     return image
 
+# 生成将答案划去的手写体字符
+def gen_clean_handle_image(data_root, dest_dir):
+    clean_path = os.path.sep.join([data_root,'images','CleanOrigin'])
+    clean_files = os.listdir(clean_path)
+    for image_file in clean_files:
+        origin_image = cv2.imread(os.path.sep.join([clean_path,image_file]),cv2.IMREAD_COLOR)
+        origin_image = cv2.cvtColor(origin_image,cv2.COLOR_BGR2GRAY)
+        bin_image = convert_img_bin(origin_image,thread_pre=11)
+        cv2.imwrite(os.path.sep.join([data_root,dest_dir,'CleanOrigin',f'{image_file}']),bin_image)
+
+
 
 
 
@@ -146,7 +157,8 @@ if __name__ == '__main__':
     torch.manual_seed(2020)
     torch.cuda.manual_seed(2020)
     # clean_env(args.data_root, args.split, args.dest_dir)
-    splits = ['SampleA','SampleB','SampleC','SampleD','SampleE','SampleH','SampleZ']
+    # splits = ['SampleA','SampleB','SampleC','SampleD','SampleE','SampleH','SampleZ']
+    splits = ['SampleA','SampleB','SampleC','SampleD','SampleE','SampleF','SampleG','SampleH']
     # for split in splits:
     #     gen_train_images(data_root=args.data_root, split=split, 
     #                     image_height=args.image_height,dest_dir=args.dest_dir)
@@ -154,3 +166,4 @@ if __name__ == '__main__':
     for split in splits:
         clean_gen_data(data_root=args.data_root, dest_dir=args.dest_dir, split=split)
 
+    # gen_clean_handle_image(data_root=args.data_root, dest_dir=args.dest_dir)

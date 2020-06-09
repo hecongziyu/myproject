@@ -9,6 +9,7 @@ import torchvision.transforms as transforms
 from ocr_model import CRNNClassify
 from torch.autograd import Variable
 
+
 toTensor = transforms.ToTensor()
 
 class strLabelConverter(object):
@@ -69,17 +70,17 @@ def valid(net,image_path, image_height,alpha, need_detect_char=False, need_dilat
     image = cv2.imread(image_path, cv2.IMREAD_COLOR)
     print(image.shape)
 
-    if need_detect_char:
-        image_gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-        image_gray_area = image_gray.shape[0] * image_gray.shape[1]
-        # print('image_gray_area -->{}'.format(image_gray_area))
-        x1,y1,x2,y2 = detect_char_area(image_gray,min_area=image_gray_area*0.05,min_y_diff=5)
-        if np.sum([x1,y1,x2,y2]) == 0:
-            return ""
-        image = image_gray[y1:y2,x1:x2]
-    else:
-        print('No detect_char_area')
-        image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    # if need_detect_char:
+    #     image_gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    #     image_gray_area = image_gray.shape[0] * image_gray.shape[1]
+    #     # print('image_gray_area -->{}'.format(image_gray_area))
+    #     x1,y1,x2,y2 = detect_char_area(image_gray,min_area=image_gray_area*0.05,min_y_diff=5)
+    #     if np.sum([x1,y1,x2,y2]) == 0:
+    #         return ""
+    #     image = image_gray[y1:y2,x1:x2]
+    # else:
+    #     print('No detect_char_area')
+    image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 
     # plt.imshow(image,'gray')
     # plt.show()
@@ -103,7 +104,7 @@ def valid(net,image_path, image_height,alpha, need_detect_char=False, need_dilat
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="OCR Evaluating Program")
     parser.add_argument('--model_name',default='ocr_best.pt', type=str, help='path of the evaluated model')
-    parser.add_argument('--alpha', default='abcde')
+    parser.add_argument('--alpha', default='abcdefghz')
     parser.add_argument('--image_file',default='5.png', type=str, help='path of the evaluated model')
     parser.add_argument('--data_root',default='D:\\PROJECT_TW\\git\\data\\ocr', type=str, help='path of the evaluated model')
     parser.add_argument("--image_height", type=int, default=32, help="图片高度")
@@ -140,6 +141,6 @@ if __name__ == '__main__':
     #     pred_result[split] = {'total':len(file_lists), 'correct':correct}
     # print('pred result:', pred_result)
 
-    word = valid(net=net, image_path=r'D:\\img\\exam\\Sample\\bad\\15709.png', 
+    word = valid(net=net, image_path=r'D:\\PROJECT_TW\\git\\data\\tmp\\check_0.png', 
                  image_height=args.image_height,alpha=args.alpha)    
     print('word -->',word)

@@ -46,6 +46,7 @@ class GTDBAnnotationTransform(object):
         Returns:
             a list containing lists of bounding boxes  [bbox coords, class name]
         """
+        
         res = []
         # read the annotations
         for box in target:
@@ -170,7 +171,8 @@ class GTDBDetection(data.Dataset):
         return im, gt, metadata
 
     def __len__(self):
-        return len(self.metadata)
+        # return len(self.metadata)
+        return 10
 
     def gen_targets(self, index):
         metadata = self.metadata[index]

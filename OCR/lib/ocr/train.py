@@ -2,7 +2,7 @@
 import utils 
 from ocr_model import CRNNClassify
 from lmdb_dataset import lmdbDataset, adjustCollate
-from lmdb_transform import CharImgTransform, ClipCharImgTransform
+from lmdb_transform import CharImgTransform
 import argparse
 import torch
 from torch.utils.data import DataLoader
@@ -32,22 +32,22 @@ def train(args):
 
     train_dataset = lmdbDataset(root=os.path.sep.join([args.data_root,'lmdb']), 
                           split='train',
-                          transform_norm=CharImgTransform(),
-                          transform_clip= ClipCharImgTransform())        
+                          transform=CharImgTransform(data_root=args.data_root))       
 
     valid_dataset = lmdbDataset(root=os.path.sep.join([args.data_root,'lmdb']), 
-                          split='train',
-                          transform_norm=CharImgTransform(),
-                          transform_clip= ClipCharImgTransform())      
+                          split='valid',
+                          transform=CharImgTransform(data_root=args.data_root))      
 
     train_loader = DataLoader(train_dataset,
                         batch_size=args.batch_size,
+                        shuffle=True,
                         pin_memory=True if use_cuda else False,
                         collate_fn=adjustCollate(imgH=32, keep_ratio=True),
                         num_workers=args.num_workers) 
 
     valid_loader = DataLoader(valid_dataset,
                         batch_size=args.batch_size,
+                        shuffle=True,
                         pin_memory=True if use_cuda else False,
                         collate_fn=adjustCollate(imgH=32, keep_ratio=True),
                         num_workers=args.num_workers) 
@@ -61,6 +61,8 @@ def train(args):
         net.load_state_dict(torch.load(args.save_dir))
 
     model = model.to(device)
+
+    print('model :', model)
 
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.5, 0.999))
@@ -89,7 +91,7 @@ def train(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ocr train')
     parser.add_argument('--data_root',default='D:\\PROJECT_TW\\git\\data\\ocr', type=str, help='path of the data')
-    parser.add_argument('--alpha', default='abcde', type=str)
+    parser.add_argument('--alpha', default='abcdefghz', type=str)
     parser.add_argument('--split', default='train', type=str) 
     parser.add_argument('--batch_size', default=16, type=int) 
     parser.add_argument('--max_epoch', default=10, type=int) 

@@ -56,6 +56,7 @@ class PriorBox(object):
                 mean += [cx, cy, s_k_prime, s_k_prime]
 
                 # rest of aspect ratios
+                
                 for ar in self.aspect_ratios[k]:
                     mean += [cx, cy, s_k*sqrt(ar), s_k/sqrt(ar)]
 

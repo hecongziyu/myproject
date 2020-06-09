@@ -17,7 +17,7 @@ class SSD(nn.Module):
         3) associated priorbox layer to produce default bounding
            boxes specific to the layer's feature map size.
     See: https://arxiv.org/pdf/1512.02325.pdf for more details.
-
+        4) https://arxiv.org/abs/1512.02325
     Args:
         phase: (string) Can be "test" or "train"
         size: input image size
@@ -89,7 +89,7 @@ class SSD(nn.Module):
         for k in range(23):
             x = self.vgg[k](x)
 
-        # print('vgg up to conv4_3 relu, output size ：' , x.size())  # torch.Size([1, 512, 64, 64])
+        print('vgg up to conv4_3 relu, output size ：' , x.size())  # torch.Size([1, 512, 64, 64])
 
 
         s = self.L2Norm(x)
@@ -99,8 +99,7 @@ class SSD(nn.Module):
         for k in range(23, len(self.vgg)):
             x = self.vgg[k](x)
 
-        # print('vgg up to fc7, output size ：' , x.size())  # torch.Size([1, 1024, 32, 32])
-
+        print('vgg up to fc7, output size ：' , x.size())  # torch.Size([1, 1024, 32, 32])
         sources.append(x)
 
         # apply extra layers and cache source layer outputs
@@ -108,7 +107,9 @@ class SSD(nn.Module):
             x = F.relu(v(x), inplace=True)
             # 为什么隔一层保留, 并且保存的都为 kernel_size 不为 (1,1) 的
             if k % 2 == 1:
+                print('extra layer, output size ：' , x.size())  # torch.Size([1, 1024, 32, 32])
                 sources.append(x)
+                # print('')
 
         # print("length source :", len(sources))
 

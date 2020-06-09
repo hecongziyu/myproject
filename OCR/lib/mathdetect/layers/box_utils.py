@@ -59,6 +59,7 @@ def jaccard(box_a, box_b):
     Return:
         jaccard overlap: (tensor) Shape: [box_a.size(0), box_b.size(0)]
     """
+    print('jaccard :', 'box_a:', box_a, ' box_b:', box_b)
     inter = intersect(box_a, box_b)
     area_a = ((box_a[:, 2]-box_a[:, 0]) *
               (box_a[:, 3]-box_a[:, 1])).unsqueeze(1).expand_as(inter)  # [A,B]

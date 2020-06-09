@@ -11,6 +11,8 @@ import torch
 from image_utils import detect_char_area
 from torch.utils.data import DataLoader
 
+BLANK_FLAG = u'z'
+
 class resizeNormalize(object):
     def __init__(self, size):
         self.size = size
@@ -98,7 +100,7 @@ class alignCollate(object):
 
 
 class lmdbDataset(Dataset):
-    def __init__(self, root=None,split='train', transform_norm=None, transform_clip=None,  target_transform=None):
+    def __init__(self, root=None,split='train', transform=None, target_transform=None):
         self.env = lmdb.open(
             root,
             max_readers=1,
@@ -107,8 +109,7 @@ class lmdbDataset(Dataset):
             readahead=False,
             meminit=False)
 
-        self.transform_norm = transform_norm
-        self.transform_clip = transform_clip
+        self.transform = transform
 
         self.target_transform = target_transform
         self.split = split
@@ -126,7 +127,7 @@ class lmdbDataset(Dataset):
 
 
     def __len__(self):
-        return self.nSamples
+        return int(self.nSamples/10)
         # return 100
         # return 20
 
@@ -164,33 +165,6 @@ class lmdbDataset(Dataset):
         char_img = char_img[y1:y2, x1:x2, ]
         return char_file_name, char_img
 
-    def __get_origin_image_label__(self,txn,index,label):
-        label_image_key = 'Sample{}_origin_num_samples'.format(label.upper())
-        label_image_number = self.__get_image_num__(txn, label_image_key)
-        origin_image_idx_key = 'origin_Sample{}_{}'.format(label.upper(), np.random.randint(label_image_number))
-        origin_img_key = str(txn.get(origin_image_idx_key.encode()).decode())
-        # print('origin image key :', origin_img_key)
-
-        origin_img = self.__get_image__(txn, origin_img_key)
-
-        if np.random.randint(2):
-            try:
-                image_gray = cv2.cvtColor(origin_img,cv2.COLOR_BGR2GRAY)
-                if image_gray.shape[1] < 600:
-                    image_gray_area = image_gray.shape[0] * image_gray.shape[1]
-                    x1,y1,x2,y2 = detect_char_area(image_gray,min_area=image_gray_area*0.05,min_y_diff=5)
-                    if np.sum([x1,y1,x2,y2]) > 0 :
-                         origin_img = origin_img[y1:y2,x1:x2,:]
-            except:
-                pass
-
-
-        bg_image = None
-
-        if self.transform_norm is not None:
-            image, bg_image, label = self.transform_norm(origin_img, bg_image,label)
-        return image, label
-
     def __get_image_label__(self,txn, index, label):
 
         char_img_lists = []
@@ -206,9 +180,10 @@ class lmdbDataset(Dataset):
             char_file_name, char_img = self.__get_char_img__(txn,char_pos_key)
             char_img_lists.append(char_img)
 
-            # 做了二进制转换后的已截取的字符图片
+            # 做了二值化转换后的已截取的字符图片, 将其转为灰度图， 方便后面transformer识别为二值化图
             char_clip_key = 'clip_{}'.format(char_file_name.split('.')[0])
             char_clip_img = self.__get_image__(txn, char_clip_key)
+            char_clip_img = cv2.cvtColor(char_clip_img, cv2.COLOR_BGR2GRAY)
             char_clip_img_lists.append(char_clip_img)
 
 
@@ -217,23 +192,23 @@ class lmdbDataset(Dataset):
         bg_image_key = 'bg_{}'.format(np.random.randint(bg_image_numter))
         bg_image = self.__get_image__(txn, bg_image_key)
 
-        if len(label) == 1:
-            char_img = char_img_lists[0]
-            char_clip_img = char_clip_img_lists[0]
+        char_img = char_img_lists
+        char_clip_img = char_clip_img_lists
+
+        if np.random.randint(2):
+            image, bg_image, label = self.transform(char_clip_img, bg_image, label)
         else:
-            char_img = char_img_lists
-            char_clip_img = char_clip_img_lists
+            image, bg_image, label = self.transform(char_img, bg_image, label)
 
+        return image, label
 
-        # image, bg_image, label = self.transform_clip(char_clip_img, bg_image, label)
-        # image, bg_image, label = self.transform_norm(char_img, bg_image,label)
-        if np.random.randint(2) == 0:
-            if self.transform_clip is not None:
-                image, bg_image, label = self.transform_clip(char_clip_img, bg_image, label)
-        else:
-            if self.transform_norm is not None:
-                image, bg_image, label = self.transform_norm(char_img, bg_image,label)
-
+    def __get_empty_img__(self, txn, index):
+        label = BLANK_FLAG
+        empty_number = self.__get_image_num__(txn, 'clean_num_samples')
+        empty_img_key = 'clean_{}'.format(np.random.randint(0, empty_number))
+        empty_img = self.__get_image__(txn, empty_img_key)
+        if self.transform is not None:
+            image, bg_image, label = self.transform(empty_img, None, label)        
         return image, label
 
 
@@ -241,28 +216,22 @@ class lmdbDataset(Dataset):
     def pull_train_item(self,txn,index):
         label_key = f'train_{index}'
         label = str(txn.get(label_key.encode()).decode())
-        if np.random.randint(2) and len(label) == 1:
-            # 从原始图片获取
-            image, label = self.__get_origin_image_label__(txn,index,label)
-            # print('origin image shape:', image.shape)
+        # 从原始图片获取, 暂时不用， 因原始图片是包含（）等信息的，没有截取字符串的
+        # image, label = self.__get_origin_image_label__(txn,index,label)
+        if  np.random.randint(10) == 0:
+            image, label = self.__get_empty_img__(txn, index)
         else:
-            # 拼装组合
             image, label = self.__get_image_label__(txn, index, label)
-            # print('merge image shape:', image.shape)
         return image, label
 
 
     def pull_valid_item(self,txn, index):
         label_key = f'valid_{index}'
         label = str(txn.get(label_key.encode()).decode())
-
-        if np.random.randint(2) and len(label) == 1:
-            # 从原始图片获取
-            image, label = self.__get_origin_image_label__(txn,index,label)
+        if  np.random.randint(10) == 0:
+            image, label = self.__get_empty_img__(txn, index)
         else:
-            # 拼装组合
             image, label = self.__get_image_label__(txn, index, label)
-
         return image, label
 
 
@@ -272,8 +241,9 @@ if __name__ == '__main__':
     import time
     import os
     import shutil
-    from lmdb_transform import CharImgTransform, ClipCharImgTransform
+    from lmdb_transform import CharImgTransform
     parser = argparse.ArgumentParser(description='ocr dataset')
+    parser.add_argument('--root_path', default='D:\\PROJECT_TW\\git\\data\\ocr', type=str)
     parser.add_argument('--data_root',default='D:\\PROJECT_TW\\git\\data\\ocr\\lmdb', type=str, help='path of the evaluated model')
     parser.add_argument('--split', default='train', type=str)    
     args = parser.parse_args()
@@ -287,18 +257,17 @@ if __name__ == '__main__':
 
     dataset = lmdbDataset(root=args.data_root, 
                           split='train',
-                          transform_norm=CharImgTransform(),
-                          transform_clip= ClipCharImgTransform())
+                          transform=CharImgTransform(data_root=args.root_path))
 
     print('data set len :', len(dataset))
 
-    for idx in range(1000):
+    for idx in range(10):
         # try:
         if idx % 100 == 0:
             print('handle %d' % idx)
         image, label = dataset[idx]
         image = image.astype(np.int)
-        # print('label:', label, ' image shape:', image.shape)
+        print('label:', label, ' image shape:', image.shape)
 
         cv2.imwrite(os.path.sep.join([tmp_path,f'{label}_{idx}.png']),image)
         # except:
@@ -307,15 +276,16 @@ if __name__ == '__main__':
         # plt.show()
     use_cuda = False
 
-    # train_loader = DataLoader(
-    #     dataset,
-    #     batch_size=10,
-    #     pin_memory=True if use_cuda else False,
-    #     collate_fn=adjustCollate(imgH=32, keep_ratio=True),
-    #     num_workers=0)   
+    train_loader = DataLoader(
+        dataset,
+        batch_size=10,
+        shuffle=True,
+        pin_memory=True if use_cuda else False,
+        collate_fn=adjustCollate(imgH=32, keep_ratio=True),
+        num_workers=0)   
 
-    # for images, labels in train_loader:
-    #     print('image shape:', images.size(), ' labels :', labels)
+    for images, labels in train_loader:
+        print('image shape:', images.size(), ' labels :', labels)
 
 
     # start_time = time.time()

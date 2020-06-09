@@ -141,7 +141,9 @@ def train(args):
 
         # load train data
         try:
+
             images, targets, _ = next(batch_iterator)
+
             # print('images size:', images.size())
         except StopIteration:
              batch_iterator = iter(data_loader)

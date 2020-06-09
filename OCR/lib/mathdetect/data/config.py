@@ -11,6 +11,17 @@ COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
 
 MEANS = (246, 246, 246)
 
+'''
+ssd 300
+            vgg up to conv4_3 relu, output size ： torch.Size([1, 512, 38, 38])
+            vgg up to fc7, output size ： torch.Size([1, 1024, 19, 19])
+            extra layer, output size ： torch.Size([1, 512, 10, 10])
+            extra layer, output size ： torch.Size([1, 256, 5, 5])
+            extra layer, output size ： torch.Size([1, 256, 3, 3])
+            extra layer, output size ： torch.Size([1, 256, 1, 1])
+
+'''
+
 exp_cfg = {
 
     'gtdb': {
@@ -67,13 +78,14 @@ exp_cfg = {
     },
 
     'ssd300': {
+
         'num_classes': 3,
         'lr_steps': (80000, 100000, 120000),
         'max_iter': 132000,
         'feature_maps': [38, 19, 10, 5, 3, 1],
         'min_dim': 300,
         'steps': [8, 16, 32, 64, 100, 300],
-        'min_sizes': [30, 60, 111, 162, 213, 264],
+        'min_sizes': [30, 60, 111, 162, 213, 264],  # 注意计算方式可参看https://arxiv.org/pdf/1512.02325.pdf P6
         'max_sizes': [60, 111, 162, 213, 264, 315],
         'aspect_ratios': [[2], [2, 3], [2, 3], [2, 3], [2], [2]],
         'variance': [0.1, 0.2],
