@@ -80,6 +80,8 @@ def gen_clean_handle_image(data_root, dest_dir):
 
 
 
+
+
 def gen_train_images(data_root, split='SampleA', background_dir='bg', image_height=32, dest_dir=None):
     split_path = os.path.sep.join([data_root,'images', split])
     files = os.listdir(split_path)
@@ -163,7 +165,7 @@ if __name__ == '__main__':
     #     gen_train_images(data_root=args.data_root, split=split, 
     #                     image_height=args.image_height,dest_dir=args.dest_dir)
 
-    for split in splits:
-        clean_gen_data(data_root=args.data_root, dest_dir=args.dest_dir, split=split)
+    # for split in splits:
+    #     clean_gen_data(data_root=args.data_root, dest_dir=args.dest_dir, split=split)
 
     # gen_clean_handle_image(data_root=args.data_root, dest_dir=args.dest_dir)

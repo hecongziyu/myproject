@@ -5,6 +5,7 @@ from torch.autograd import Variable
 from layers import *
 import os
 import numpy as np
+import time
 
 base = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M', 512, 512, 512]
 
@@ -84,10 +85,15 @@ class SSD(nn.Module):
         loc = list()
         conf = list()
 
+
         # apply vgg up to conv4_3 relu
         # print('begin ...')
+        # start_time = time.time()
         for k in range(23):
             x = self.vgg[k](x)
+            # print(f'vgg layer {k} size:', x.size()) 
+
+        # print('vgg 23 use time :', (time.time() - start_time))
 
         # print('vgg up to conv4_3 relu, output size ：' , x.size())  # torch.Size([1, 512, 64, 64])
 
@@ -96,8 +102,12 @@ class SSD(nn.Module):
         sources.append(s)
 
         # apply vgg up to fc7
+        # start_time = time.time()
         for k in range(23, len(self.vgg)):
             x = self.vgg[k](x)
+            # print(f'vgg layer {k} size:', x.size()) 
+
+        # print('vgg up to fc7 use time :', (time.time() - start_time))
 
         # print('vgg up to fc7, output size ：' , x.size())  # torch.Size([1, 1024, 32, 32])
 
@@ -106,6 +116,7 @@ class SSD(nn.Module):
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
             x = F.relu(v(x), inplace=True)
+            # print(f'extry layer {k} size:', x.size()) 
             # 为什么隔一层保留, 并且保存的都为 kernel_size 不为 (1,1) 的
             if k % 2 == 1:
                 sources.append(x)
@@ -127,7 +138,8 @@ class SSD(nn.Module):
             loc.append(l(x).permute(0, 2, 3, 1).contiguous())
             conf.append(c(x).permute(0, 2, 3, 1).contiguous())
         # loc conf 0 output size : torch.Size([1, 64, 64, 28]) torch.Size([1, 64, 64, 14])
-        # print('loc conf 0 output size :', loc[0].size(), conf[0].size())
+        # for idx in range(len(loc)):
+        #     print(f'loc conf {idx} output size :', loc[idx].size(), conf[idx].size())
 
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
@@ -137,6 +149,10 @@ class SSD(nn.Module):
         # print('phase :', self.phase)
         if self.phase == "test" or self.phase == 'use':
             with torch.no_grad():
+                # print('loc size:', loc.size())
+                # print('conf size:', conf.size())
+                # print('prios size:', self.priors.size())
+
                 output, boxes, scores = self.detect(
                     loc.view(loc.size(0), -1, 4),                   # loc preds
                     self.softmax(conf.view(conf.size(0), -1,
@@ -213,6 +229,9 @@ def add_extras(cfg, size, i, batch_norm=False):
         layers.append(nn.Conv2d(in_channels, 128, kernel_size=1, stride=1))
         layers.append(nn.Conv2d(128, 256, kernel_size=4, stride=1, padding=1))
 
+    # if size == 100:
+    #     layers.append(nn.Conv2d(in_channels, 128, kernel_size=1, stride=1))
+
     return layers
 
 
@@ -222,7 +241,7 @@ def multibox(args, vgg, extra_layers, cfg, size, num_classes):
     conf_layers = []
 
     vgg_source = [21, -2]
-
+    # 第21层和倒数第二层
     for k, v in enumerate(vgg_source):
         loc_layers += [nn.Conv2d(vgg[v].out_channels, cfg[k] * 4,
                                  kernel_size=args.kernel, padding=args.padding)]
@@ -243,8 +262,9 @@ def build_ssd(args, phase, cfg, gpu_id, size=300, num_classes=21):
         print("ERROR: Phase: " + phase + " not recognized")
         return
 
-    print('base :', base)
-    base_, extras_, head_ = multibox(args,vgg(base, 3, False),
+    # print('base :', base)
+    # print(cfg['channel'])
+    base_, extras_, head_ = multibox(args,vgg(base, cfg['channel'], False),
                                      add_extras(cfg, size, 1024),
                                      cfg['mbox'][str(size)], size, num_classes)
 

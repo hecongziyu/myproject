@@ -144,8 +144,8 @@ class CombinCharImages(object):
             return image, bg_image, label
 
 
-        height = np.max([x.shape[0] for x in image]) + 10
-        width = np.sum([x.shape[1] for x in image]) + 10
+        height = np.max([x.shape[0] for x in image]) + 200
+        width = np.sum([x.shape[1] for x in image]) + 200
         cm_image = np.zeros((height,width, image[0].shape[2]), np.uint8) 
         cm_image = cm_image.astype(image[0].dtype)
 
@@ -153,7 +153,8 @@ class CombinCharImages(object):
         cm_image[:,:,1] = np.median(bg_image[:,:,1])
         cm_image[:,:,2] = np.median(bg_image[:,:,2])
 
-        
+        max_offset_y = 0
+        sum_offset_x = 0
         offset_x = 0
         offset_y = 0
         for idx,img in enumerate(image):
@@ -161,11 +162,15 @@ class CombinCharImages(object):
             if idx == 0:
                 offset_x_bias = 0
             else:
-                offset_x_bias = np.random.randint(-2, 2)
-            offset_y_bias = np.random.randint(0, 5)
+                offset_x_bias = np.random.randint(-2, 25)
+            offset_y_bias = np.random.randint(0, 15)
+            if (offset_y+height+offset_y_bias) > max_offset_y:
+                max_offset_y = offset_y+height+offset_y_bias
             cm_image[offset_y+offset_y_bias:offset_y+height+offset_y_bias, offset_x+offset_x_bias:offset_x+width+offset_x_bias,:] = img
             offset_x = width + offset_x + offset_x_bias
-        image = cm_image.copy()
+            # sum_offset_x += offset_x 
+        image = cm_image[0:max_offset_y + 2, 0:offset_x + 2, ]
+        # image = cm_image.copy()
         return image, bg_image, label
 
 

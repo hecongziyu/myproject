@@ -314,13 +314,13 @@ if __name__ == '__main__':
 
     # 注意GTDBAnnotationTransform  [box[0]/width, box[1]/height, box[2]/width, box[3]/height, 0]
 
-    dataset = GTDBDetection(args, data_file=args.data_root, split='valid',
+    dataset = GTDBDetection(args, data_file=args.data_root, split='train',
                             transform = GTDBTransform(data_root=args.root_path, window=args.window, size=args.size),
                             target_transform = GTDBAnnotationTransform()
                             )    
 
 
-    for index in range(1000):
+    for index in range(2000):
         if index % 100 == 0:
             print('handle {} image '.format(index))
         im, boxes = dataset[index]

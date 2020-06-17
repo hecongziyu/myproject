@@ -30,8 +30,8 @@ class PriorBox(object):
 
     def forward(self):
         mean = []
-        # print('feature map : ', self.feature_maps)  --》 feature map :  [64, 32, 16, 8, 4, 2, 1]
-        # print('steps ', self.steps)   --> steps  [8, 16, 32, 64, 128, 256, 512]
+        # print('feature map : ', self.feature_maps)  #--》 feature map :  [64, 32, 16, 8, 4, 2, 1]
+        # print('steps ', self.steps)   # --> steps  [8, 16, 32, 64, 128, 256, 512]
         # print('min sizes :' , self.min_sizes)  --> min sizes : [35.84, 76.8, 153.6, 230.4, 307.2, 384.0, 460.8]
         for k, f in enumerate(self.feature_maps):
             '''
@@ -56,11 +56,15 @@ class PriorBox(object):
                 mean += [cx, cy, s_k_prime, s_k_prime]
 
                 # rest of aspect ratios
+
                 for ar in self.aspect_ratios[k]:
                     mean += [cx, cy, s_k*sqrt(ar), s_k/sqrt(ar)]
 
                     if self.is_vertical_prior_boxes_enabled:
                         mean += [cx, cy, s_k/sqrt(ar), s_k*sqrt(ar)]
+
+            # print(f'{k} step: ', len(mean), ' is is_vertical_prior_boxes_enabled:', self.is_vertical_prior_boxes_enabled)
+
 
         # back to torch land
         output = torch.Tensor(mean).view(-1, 4)

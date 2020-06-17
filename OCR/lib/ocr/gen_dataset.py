@@ -23,12 +23,17 @@ def random_alpha(size = 100):
     alpha_list = []
     for _ in range(size):
         lalpha = None
-        if np.random.randint(2):
-            lalpha = np.random.choice(list(alpha), max(1,np.random.randint(len(alpha))), replace=False)
-            alpha_list.append(''.join(lalpha))    
-        else:
+        sel = np.random.randint(6)
+        if sel<=2:
             lalpha = np.random.choice(list(alpha), 1, replace=False)
             alpha_list.append(''.join(lalpha))
+        else:
+            lalpha = np.random.choice(list(alpha), np.random.randint(2,5), replace=False)
+            alpha_list.append(''.join(lalpha))    
+        # else:
+        #     lalpha = np.random.choice(list(alpha), np.random.randint(5,len(alpha)), replace=False)
+        #     alpha_list.append(''.join(lalpha))    
+
     return alpha_list
 
 
@@ -108,6 +113,9 @@ def createCleanImageCache(env, data_root, dest_dir, cleanImageLists):
     writeCache(env, cache)        
 
 
+
+
+
 def createLabelCache(env, train_data, valid_data):
     cache = {}
     for idx, label in enumerate(train_data):
@@ -184,14 +192,14 @@ if __name__ == '__main__':
     train_data = random_alpha(500000)
     valid_data = random_alpha(20000)
 
-    char_image_lists = get_char_image_lists(args.data_root, 'dest')
-    bg_image_lists = get_bg_images_lists(args.data_root, 'dest')
-    origin_image_lists = get_char_image_lists(args.data_root,'images')
-    clean_image_lists = os.listdir(os.path.sep.join([args.data_root,'dest','Empty']))
+    # char_image_lists = get_char_image_lists(args.data_root, 'dest')
+    # bg_image_lists = get_bg_images_lists(args.data_root, 'dest')
+    # origin_image_lists = get_char_image_lists(args.data_root,'images')
+    # clean_image_lists = os.listdir(os.path.sep.join([args.data_root,'dest','Empty']))
 
-    createDataset(data_root=args.data_root, dest_dir='dest', train_data=train_data,
-            valid_data=valid_data, charImageLists=char_image_lists, charPosLists=None,
-            bgImageLists=bg_image_lists, originImageLists=origin_image_lists, cleanImageLists=clean_image_lists)
+    # createDataset(data_root=args.data_root, dest_dir='dest', train_data=train_data,
+    #         valid_data=valid_data, charImageLists=char_image_lists, charPosLists=None,
+    #         bgImageLists=bg_image_lists, originImageLists=origin_image_lists, cleanImageLists=clean_image_lists)
 
 
 

@@ -211,6 +211,20 @@ class lmdbDataset(Dataset):
             image, bg_image, label = self.transform(empty_img, None, label)        
         return image, label
 
+    def __get_origin_img__(self,txn, label):
+        label_image_key = 'Sample{}_num_samples'.format(label.upper())
+        label_image_number = self.__get_image_num__(txn, label_image_key)
+        # 字符在原图中的坐标，并得到字符在原图中图片
+        char_pos_key = 'Sample{}_pos_{}'.format(label.upper(), np.random.randint(label_image_number))
+        char_pos_info = str(txn.get(char_pos_key.encode()).decode())
+        char_file_name, char_pos = char_pos_info.split('|')
+        char_pos_img_key = 'origin_%s' % char_file_name.split('.')[0]
+        char_img = self.__get_image__(txn, char_pos_img_key)
+
+        image, bg_image, label = self.transform(char_img, None, label)
+        
+        return image, label
+
 
 
     def pull_train_item(self,txn,index):
@@ -221,7 +235,15 @@ class lmdbDataset(Dataset):
         if  np.random.randint(10) == 0:
             image, label = self.__get_empty_img__(txn, index)
         else:
-            image, label = self.__get_image_label__(txn, index, label)
+            # print('label len:', len(label),':',label)
+            if len(label) == 1:
+                if np.random.randint(3)==0:
+                    image, label = self.__get_origin_img__(txn, label)
+                else:
+                    image, label = self.__get_image_label__(txn, index, label)    
+            else:
+                image, label = self.__get_image_label__(txn, index, label)
+
         return image, label
 
 
@@ -250,8 +272,8 @@ if __name__ == '__main__':
 
     tmp_path = 'D:\\PROJECT_TW\\git\\data\\tmp'
     
-    if os.path.exists(tmp_path):
-        shutil.rmtree(tmp_path)
+    # if os.path.exists(tmp_path):
+    #     shutil.rmtree(tmp_path)
     if not os.path.exists(tmp_path):
         os.mkdir(tmp_path)
 
@@ -261,13 +283,13 @@ if __name__ == '__main__':
 
     print('data set len :', len(dataset))
 
-    for idx in range(10):
+    for idx in range(1000):
         # try:
         if idx % 100 == 0:
             print('handle %d' % idx)
         image, label = dataset[idx]
         image = image.astype(np.int)
-        print('label:', label, ' image shape:', image.shape)
+        # print('label:', label, ' image shape:', image.shape)
 
         cv2.imwrite(os.path.sep.join([tmp_path,f'{label}_{idx}.png']),image)
         # except:
@@ -276,16 +298,16 @@ if __name__ == '__main__':
         # plt.show()
     use_cuda = False
 
-    train_loader = DataLoader(
-        dataset,
-        batch_size=10,
-        shuffle=True,
-        pin_memory=True if use_cuda else False,
-        collate_fn=adjustCollate(imgH=32, keep_ratio=True),
-        num_workers=0)   
+    # train_loader = DataLoader(
+    #     dataset,
+    #     batch_size=10,
+    #     shuffle=True,
+    #     pin_memory=True if use_cuda else False,
+    #     collate_fn=adjustCollate(imgH=32, keep_ratio=True),
+    #     num_workers=0)   
 
-    for images, labels in train_loader:
-        print('image shape:', images.size(), ' labels :', labels)
+    # for images, labels in train_loader:
+    #     print('image shape:', images.size(), ' labels :', labels)
 
 
     # start_time = time.time()

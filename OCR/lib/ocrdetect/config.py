@@ -3,6 +3,7 @@ import os.path
 
 # gets home dir cross platform
 # 关于default box min size  and max size 可参看 https://www.icode9.com/content-1-641141.html
+# 关于default box https://arxiv.org/pdf/1512.02325.pdf 
 HOME = os.path.expanduser("~")
 
 # for making bounding boxes pretty
@@ -16,7 +17,7 @@ exp_cfg = {
     'gtdb': {
         'num_classes': 2,
         'lr_steps': (80000, 100000, 120000),
-
+        'channel':3,
         'max_iter': 120000,
         'feature_maps': [64, 32, 16, 8, 4, 2, 1],
         'min_dim': 512,
@@ -44,6 +45,7 @@ exp_cfg = {
 
     'math_gtdb_512': {
         'num_classes': 3,
+        'channel':3,
         'lr_steps': (80000, 100000, 120000),
         'max_iter': 240000,
         'feature_maps': [64, 32, 16, 8, 4, 2, 1],
@@ -67,6 +69,7 @@ exp_cfg = {
 
     'ssd300': {
         'num_classes': 2,
+        'channel':3,
         'lr_steps': (80000, 100000, 120000),
         'max_iter': 132000,
         'feature_maps': [38, 19, 10, 5, 3, 1],
@@ -90,8 +93,35 @@ exp_cfg = {
         }
     },
 
+
+    'ssd100': {
+        'num_classes': 2,
+        'channel':3,
+        'lr_steps': (80000, 100000, 120000),
+        'max_iter': 132000,
+        'feature_maps': [13, 6, 3, 2, 1],
+        'min_dim': 100,
+        'steps': [8, 16, 32, 50, 100],
+        'min_sizes': [8, 24, 40, 57, 73],
+        'max_sizes': [24,40, 57, 73, 95],
+        'aspect_ratios': [[2,3,5], [2, 3, 5], [2, 3, 5], [2, 3, 5], [2,3,5], [2,3,5]],
+        'variance': [0.1, 0.2],
+        'clip': True,
+        'name': 'ssd100',
+        'is_vertical_prior_boxes_enabled': True,
+        'mbox': {
+            '100': [8, 8, 8, 8, 8, 8],  # number of boxes per feature map location
+        },
+        'extras': {
+            '100': [256, 'S', 512, 128, 'S', 256, 128,'S', 256],
+        }
+    },
+
+
+
     'ssd512': {
         'num_classes': 2,
+        'channel':3,
         'lr_steps': (80000, 100000, 120000),
         'max_iter': 132000,
         'feature_maps': [64, 32, 16, 8, 4, 2, 1],
@@ -114,6 +144,7 @@ exp_cfg = {
 
     'aspect512': {
         'num_classes': 2,
+        'channel':3,
         'lr_steps': (80000, 100000, 120000),
         'max_iter': 132000,
         'feature_maps': [64, 32, 16, 8, 4, 2, 1],
@@ -138,6 +169,7 @@ exp_cfg = {
 
     'hboxes512': {
         'num_classes': 2,
+        'channel':3,
         'lr_steps': (80000, 100000, 120000),
         'max_iter': 132000,
         'feature_maps': [64, 32, 16, 8, 4, 2, 1],

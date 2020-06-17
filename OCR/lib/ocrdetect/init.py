@@ -17,8 +17,8 @@ def init_args(params=None):
                         help='Dataset root directory path')
     parser.add_argument('--basenet', default='vgg16_reducedfc.pth',
                         help='Pretrained base model')
-    parser.add_argument('--size', default=300,type=int, help='image transform size')    
-    parser.add_argument('--batch_size', default=1, type=int,
+    parser.add_argument('--size', default=100,type=int, help='image transform size')    
+    parser.add_argument('--batch_size', default=3, type=int,
                         help='Batch size for training')
     # parser.add_argument('--resume', default='D:\\PROJECT_TW\\git\\data\\ocr\\weights\\best_ssd300.pth', type=str,
     parser.add_argument('--resume', default=None, type=str,    
@@ -59,7 +59,7 @@ def init_args(params=None):
                         help='It is the name of the experiment. Weights are saved in the directory with same name.')
     parser.add_argument('--layers_to_freeze', default=20, type=float,
                         help='Number of VGG16 layers to freeze')
-    parser.add_argument('--model_type', default=300, type=int,
+    parser.add_argument('--model_type', default=100, type=int,
                         help='Type of ssd model, ssd300 or ssd512')
     parser.add_argument('--suffix', default="_10", type=str,
                         help='Stride % used while generating images or dpi from which images was generated or some other identifier')
@@ -69,7 +69,7 @@ def init_args(params=None):
                         help='Validation data to use. This is list of file names, one per line')
     parser.add_argument('--use_char_info', default=False, type=bool,
                         help='Whether to use char position info and labels')
-    parser.add_argument('--cfg', default="ssd300", type=str,
+    parser.add_argument('--cfg', default="ssd100", type=str,
                         help='Type of network: either gtdb or math_gtdb_512')
     parser.add_argument('--loss_fun', default="fl", type=str,
                         help='Type of loss: either fl (focal loss) or ce (cross entropy)')
@@ -85,7 +85,7 @@ def init_args(params=None):
                         help='dir to save the logs')
     parser.add_argument('--stride', default=0.1, type=float,
                         help='Stride to use for sliding window')
-    parser.add_argument('--window', default=300, type=int,
+    parser.add_argument('--window', default=100, type=int,
                         help='Sliding window size')
     parser.add_argument('--pos_thresh', default=0.5, type=float,
                         help='All default boxes with iou>pos_thresh are considered as positive examples')

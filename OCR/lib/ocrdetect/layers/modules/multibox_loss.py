@@ -101,9 +101,10 @@ class MultiBoxLoss(nn.Module):
 
         # 取非背景类别的数据
         pos = conf_t > 0
-        # print('pos:', pos)
-        num_pos = pos.sum(dim=1, keepdim=True)
+        
 
+        num_pos = pos.sum(dim=1, keepdim=True)
+        # print('num pos:', num_pos)
 
         # Localization Loss (Smooth L1)
         # Shape: [batch,num_priors,4]
@@ -166,9 +167,12 @@ class MultiBoxLoss(nn.Module):
 
         # Sum of losses: L(x,c,l,g) = (Lconf(x, c) + αLloc(x,l,g)) / N
 
-        N = num_pos.data.sum()
+        # 注意当训练数据批次为1时，有可能数据里面没有图片，所以N会为0，这里为防止错误，需将N+1
+        # 训练批次大的时候，不会出现该问题
+        N = num_pos.data.sum() + 1
         #loss_l = loss_l.double()
         #loss_c = loss_c.double()
+
         loss_l /= N
         loss_c /= N
         return loss_l, loss_c

@@ -50,6 +50,10 @@ class Compose(object):
 
 class ConvertFromInts(object):
     def __call__(self, image, boxes=None, bg_img=None):
+        image = image.astype(np.uint8)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # print('image shape:', image.shape)
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         return image.astype(np.float32), boxes, bg_img
 
 class SubtractMeans(object):
@@ -78,7 +82,8 @@ class ToPercentCoords(object):
         self.window = window
     def __call__(self, image, boxes=None, bg_img=None):
         height, width, channels = image.shape
-        boxes[np.where(boxes[:,4] == -1),0:4] = -1
+        # print('boxes:', boxes)
+        boxes[np.where(boxes[:,4] == -1),0:4] = 0
         boxes[:, 0] /= self.window
         boxes[:, 2] /= self.window
         boxes[:, 1] /= self.window
@@ -88,15 +93,19 @@ class ToPercentCoords(object):
 
 
 class ExpandBackGround(object):
-    def __init__(self, min_width=60, min_height=32):
+    def __init__(self, min_width=60, min_height=32, max_width_radio=1.3, max_height_radio=1.3):
         self.min_width = min_width
         self.min_height = min_height
+        self.max_height_radio = max_height_radio
+        self.max_width_radio =max_width_radio
 
     def __call__(self, images, boxes, bg_image):
         if bg_image is None:
             return images, boxes, bg_image
 
         height, width, channel = bg_image.shape
+
+        # 如果背景图片小于最小宽度，扩展两边长度
         if bg_image.shape[0] < self.min_height or bg_image.shape[1] < self.min_width:
             # print('expand image ', bg_image.shape, ' mean :', np.mean(bg_image[:,:,0]),":",np.mean(bg_image[:,:,1]))
             exp_img = np.zeros((max(self.min_height,bg_image.shape[0]) + 1, 
@@ -121,6 +130,22 @@ class ExpandBackGround(object):
             scale = np.random.uniform(1.0,1.3)
             bg_image = cv2.resize(bg_image, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
 
+        exp_width_radio = np.random.uniform(1.1, self.max_width_radio)
+        exp_height_radio = np.random.uniform(1.1, self.max_height_radio)
+        exp_img = np.zeros((int(exp_height_radio * bg_image.shape[0]),
+                           (int(exp_width_radio * bg_image.shape[1])),bg_image.shape[2]))    
+        exp_img[:,:,0] = np.median(bg_image[:,:,0])
+        exp_img[:,:,1] = np.median(bg_image[:,:,1])
+        exp_img[:,:,2] = np.median(bg_image[:,:,2])
+
+        # print('exp image shape:', exp_img.shape, ' bg image shape:', bg_image.shape)
+        bg_offset_x = np.random.randint(0, (exp_img.shape[1] - bg_image.shape[1] - 1))
+        bg_offset_y = np.random.randint(0, (exp_img.shape[0] - bg_image.shape[0] - 1))
+
+        exp_img[bg_offset_y:bg_offset_y+bg_image.shape[0], bg_offset_x:bg_offset_x+bg_image.shape[1],:] = bg_image
+        bg_image  = exp_img.copy()
+
+
         return images, boxes, bg_image
 
 
@@ -130,9 +155,15 @@ class Mask2Windows(object):
 
     def __call__(self, image, boxes=None,bg_img=None):
         height, width, _ = image.shape
-        if height > self.window or width > self.window:
-            return image, boxes, bg_img
-
+        if width > self.window or height > self.window:
+           scale = min(self.window/width, self.window/height)
+           image = cv2.resize(image,(0,0),fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
+           if boxes is not None:
+              boxes[:,0] = boxes[:,0] * scale
+              boxes[:,1] = boxes[:,1] * scale
+              boxes[:,2] = boxes[:,2] * scale
+              boxes[:,3] = boxes[:,3] * scale
+        
         win_img = np.full((self.window, self.window, image.shape[2]), 255)
         win_img[0:image.shape[0],0:image.shape[1],:] = image.copy()
         return win_img, boxes, bg_img
@@ -313,24 +344,29 @@ class CombinCharImages(object):
             image_lists.append(split_images[0])
             boxes_lists.extend(split_boxes)
         boxes_lists = np.array(boxes_lists)
-        c_width = max([x.shape[1] for x in image_lists]) + 1
-        c_heigh = sum([x.shape[0] for x in image_lists]) + 5
+        c_width = max([x.shape[1] for x in image_lists]) + np.random.randint(5, 30)
+        c_heigh = sum([x.shape[0] for x in image_lists]) + np.random.randint(2, 25)
         c_image = np.ones((c_heigh,c_width, 3), np.uint8)
         c_image[:,:,0] = np.median(bg_image[:,:,0])
         c_image[:,:,1] = np.median(bg_image[:,:,1])
         c_image[:,:,2] = np.median(bg_image[:,:,2])
 
-        # 把两行图片进行合并，按上下顺序
+        # 把两行图片进行合并，按上下顺序, 注意只能有两行，多行会报错
         offset_y = 0
         for idx  in range(len(image_lists)):
             m_image = image_lists[idx]
             offset_x = np.random.randint(0, c_width-m_image.shape[1])
+            if idx == 0:
+                offset_y = 0
+            else:
+                offset_y = image_lists[0].shape[0] + np.random.randint(1, c_heigh-image_lists[0].shape[0]-m_image.shape[0])
+
             c_image[offset_y:offset_y+m_image.shape[0], offset_x:offset_x + m_image.shape[1],:] = m_image
             boxes_lists[idx,1] = boxes_lists[idx,1] + offset_y
             boxes_lists[idx,3] = boxes_lists[idx,3] + offset_y
             boxes_lists[idx,0] = boxes_lists[idx,0] + offset_x
             boxes_lists[idx,2] = boxes_lists[idx,2] + offset_x
-            offset_y = m_image.shape[0] + np.random.randint(1, 4)
+            
 
 
 
@@ -342,7 +378,7 @@ class CombinCharImages(object):
     def __random_split_data__(self, images,boxes):
         split_images = []
         split_boxes = []        
-        if np.random.randint(2) and len(images) > 2 :
+        if np.random.randint(2) and len(images) >= 2 :
             split_number = np.random.randint(1, len(images))
             split_images.append(images[0:split_number])
             split_boxes.append(boxes[0:split_number])
@@ -400,7 +436,7 @@ class CombinCharImages(object):
 # 混合字符图片，如有背景图片，则将其与背景图片进行混合
 # 进入的是单张图片
 class MaskAlphaImage(object):
-    def __init__(self, min_radio=0.3, max_radio=0.8):
+    def __init__(self, min_radio=0.3, max_radio=0.7):
         self.min_radio = min_radio
         self.max_radio = max_radio
 
@@ -442,6 +478,40 @@ class MaskAlphaImage(object):
         return image, boxes, bg_image
 
 
+class ExpandMixImage(object):
+
+    def __init__(self, max_width_radio=1.5, max_height_radio=1.5):
+        self.max_height_radio = max_height_radio
+        self.max_width_radio =max_width_radio
+
+
+    def __call__(self,image, boxes=None, bg_image=None):
+        if bg_image is None or boxes is None:
+            return image, boxes, bg_image
+    
+        exp_width_radio = np.random.uniform(1.1, self.max_width_radio)
+        exp_height_radio = np.random.uniform(1.1, self.max_height_radio)
+        exp_img = np.zeros((int(exp_height_radio * image.shape[0]),
+                           (int(exp_width_radio * image.shape[1])),image.shape[2]))    
+        exp_img[:,:,0] = np.median(bg_image[:,:,0])
+        exp_img[:,:,1] = np.median(bg_image[:,:,1])
+        exp_img[:,:,2] = np.median(bg_image[:,:,2])
+
+        # print('exp image shape:', exp_img.shape, ' bg image shape:', bg_image.shape)
+        bg_offset_x = np.random.randint(0, (exp_img.shape[1] - image.shape[1] - 1))
+        bg_offset_y = np.random.randint(0, (exp_img.shape[0] - image.shape[0] - 1))
+
+        exp_img[bg_offset_y:bg_offset_y+image.shape[0], bg_offset_x:bg_offset_x+image.shape[1],:] = image
+        image  = exp_img.copy()
+
+        boxes[:,0] = boxes[:,0] + bg_offset_x
+        boxes[:,2] = boxes[:,2] + bg_offset_x
+        boxes[:,1] = boxes[:,1] + bg_offset_y
+        boxes[:,3] = boxes[:,3] + bg_offset_y
+
+
+        return image, boxes, bg_image        
+
 
 class GTDBTransform(object):
     def __init__(self, data_root, window=1200, size=300, mean=(104, 117, 123)):
@@ -456,6 +526,7 @@ class GTDBTransform(object):
             ExpandBackGround(),  # 扩展背景图片大小
             ToAbsoluteCoords(window=self.window),  # ToAbsoluteCoords 转成绝对坐标，生成的box进行了缩放
             MaskAlphaImage(), # 混合背景图片
+            ExpandMixImage(), # 扩展图片
             RandomSize(), # 随机调整大小
             Mask2Windows(window=self.window), # 将图片粘贴到1200*1200窗口大小的坐标上面
             ConvertFromInts(),
