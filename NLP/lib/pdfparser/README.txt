@@ -24,10 +24,31 @@
 
 
 四、模型：
-    
+1 )
+    CRN :
+        x1 = encoding(str)
+        c =  list str
+        P(xn|cn) 
+
+2 )     
+    E = TimeSeries(e1, e2, e3, e4, ... en)
+
+    e1 = str , position_type(标题、问题分级、内容)
+
+    str encoding = lstm(embeding(max len 10 char) ) 
+    context encoding = vstack(str encoding list)
+
+
+ 
+    ? 
+
     context:embeding _ str(current_level_questions)   +   embeding _ str(current_block_contents)
     body:embeding _ char(content)
 
+
+五、训练数据
+试卷ID | 试题内容  | 类型 , ( 问题 ) 级别
+1| str | type and level
 
 
 
