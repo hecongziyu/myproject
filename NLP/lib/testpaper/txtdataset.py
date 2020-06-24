@@ -27,6 +27,7 @@ TAG_CONTENT = 2
 TAG_ANSWER = 3
 
 TARGETS = {1:'QUERSTION', 2:'CONTENT', 3:'ANSWER'}
+STOP_WORDS = ['的','地', ',','.','，','得','(','（',')','）']
 
 # 定义分词工具
 
@@ -42,8 +43,11 @@ TARGETS = {1:'QUERSTION', 2:'CONTENT', 3:'ANSWER'}
 def build_vocab(field, dataset, lexicon):
     vocab_lists = [x.text for x in dataset]
     vocab_lists.append(lexicon)
+    # vocab_lists.append(lexicon)
     # print('vocab lists: ', vocab_lists)
-    field.build_vocab(vocab_lists)
+    field.build_vocab(vocab_lists, min_freq=1)
+
+
 
 
 class TextPaperDataSet(data.Dataset):
@@ -82,6 +86,7 @@ class TextPaperDataSet(data.Dataset):
             pku = pku.replace('（','(').replace('）',')').replace('、','.').replace(',','.').strip()
             example[0] = '{} {}'.format(pku, example[0])
         example = Example.fromlist(data=example, fields=self.origin_fields)
+        example.label = int(example.label) - 1 
         return example
 
 
@@ -93,6 +98,7 @@ class TextPaperDataSet(data.Dataset):
                 pku = pku.replace('（','(').replace('）',')').replace('、','.').replace(',','.').strip()
                 example[0] = '{} {}'.format(pku, example[0])
             example = Example.fromlist(data=example, fields=self.origin_fields)
+            example.label = int(example.label) - 1 
             yield example
 
 
@@ -112,14 +118,14 @@ if __name__ == '__main__':
         # print('cut text:', [wd for wd in seg.cut(text)])
         return [wd for wd in seg.cut(text)]    
 
-    TEXT = data.Field(tokenize=tokenizer,lower=False, batch_first=True, postprocessing=None)
+    TEXT = data.Field(tokenize=tokenizer,lower=False, batch_first=True, postprocessing=None,stop_words=STOP_WORDS)
     LABEL = data.Field(sequential=False, use_vocab=False)
-    train = TextPaperDataSet(data_root=args.data_root, split='train', vocab=None, token=None, fields=[('text',TEXT),('label', LABEL)])
-    valid = TextPaperDataSet(data_root=args.data_root, split='train', vocab=None, token=None, fields=[('text',TEXT),('label', LABEL)])
+    train = TextPaperDataSet(data_root=args.data_root, split='train', token=None, fields=[('text',TEXT),('label', LABEL)])
+    valid = TextPaperDataSet(data_root=args.data_root, split='valid', token=None, fields=[('text',TEXT),('label', LABEL)])
 
     # for _ in range(3):
-        # for item in valid:
-        #     print('text:', item.text, ' label:', item.label)
+    for item in valid:
+        print('text:', item.text, ' label:', item.label)
         # pass
 
     # 注意因为是采用增强数据方式，所以需预先将用户字典增加到TEXT field vocab里面去
@@ -129,14 +135,17 @@ if __name__ == '__main__':
         (train,valid),
         batch_sizes=(4,4),
         device=torch.device('cpu'),
-    #     sort_key=lambda x:len(x.comment_text),
+        sort_key=lambda x:len(x.text),
         sort_within_batch=False,
         repeat=False)
 
    
-    for batch in train_iter:
+    for batch in valid_iter:
         feature, target = batch.text, batch.label     
         print('feature: ', feature)
+        print('target:', target)
+        print('feature size:', feature.size())
+        break;
 
 
 

@@ -79,6 +79,7 @@ class Trainer(object):
 
             if accuracy > self.best_accuracy:
                 self.save_model('ocr_best')
+                self.best_accuracy = accuracy
             self.epoch += 1
             total_step = 0
 

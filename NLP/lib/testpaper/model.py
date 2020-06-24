@@ -24,6 +24,7 @@ class TextEmbedding(nn.Module):
         input data: batch * word id lists 
         '''
         output = self.embedding(input_data)
+        # print('embed data size:', output.size())
         output, c_t = self.lstm(output)       
         return output, c_t
 
@@ -35,22 +36,22 @@ class TextClassify(nn.Module):
     '''
     def __init__(self, vocab_size, embed_dim, hidden_dim, num_class):
         super(TextClassify, self).__init__()
-        self.embedding = TextEmbedding(vocab_size, embed_dim, hidden_dim)
+        self.txt_embedding = TextEmbedding(vocab_size, embed_dim, hidden_dim)
         self.layers = nn.Sequential(nn.Linear(hidden_dim, 256), nn.ReLU(), nn.Linear(256, 128), nn.ReLU())
         self.fc = nn.Linear(128, num_class)
 
     def forward(self, input_data):
         '''
-            input data: batch *  word id lists 
+            input data: batch *  word lists 
         '''
         # print('input size :', input_data.size())
-        output, _ = self.embedding(input_data)
-        # print('embed size :', output.size())
+        output, _ = self.txt_embedding(input_data)
+        output = output[:,-1,:]
         output = self.layers(output)
-        # print('layers size :', output.size())
         output = F.relu(self.fc(output))
-        output = F.softmax(output, dim=2)
+        output = F.softmax(output, dim=1)
         return output
+
 
 
 

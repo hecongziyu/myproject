@@ -53,6 +53,7 @@ def train(args):
                         num_workers=args.num_workers) 
 
     device = torch.device("cuda" if use_cuda else "cpu")
+    
     model = CRNNClassify(imgH=imgH,nc=imgC,nh=nh, nclass=len(alpha)+1)
     model.apply(weights_init)
 
