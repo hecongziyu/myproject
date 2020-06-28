@@ -2,6 +2,8 @@
 '''
 https://blog.csdn.net/david0611/article/details/81090371 embed 词向量
 https://blog.csdn.net/luoyexuge/article/details/83857778  句向量
+https://www.cnblogs.com/webbery/p/11766623.html pytorch的Embedding使用
+https://blog.csdn.net/tommorrow12/article/details/80896331?utm_medium=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.nonecase
 '''
 import torch.nn as nn
 import torch
