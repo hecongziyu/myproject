@@ -1,9 +1,11 @@
 # encoding: utf-8
+# https://blog.csdn.net/u011534057/article/details/51452564
 import os
 from os.path import join
 import torch
 from torch.nn.utils import clip_grad_norm_
 from torch.autograd import Variable
+from config import logger
 
 class Trainer(object):
     def __init__(self, optimizer, model,criterion,lr_scheduler,
@@ -34,7 +36,8 @@ class Trainer(object):
             dtype = torch.cuda.FloatTensor
         else:
             dtype = torch.FloatTensor
-
+        device = torch.device("cuda" if self.use_cuda else "cpu")
+        
         # text = torch.IntTensor(self.args.batch_size * 5)
         # length = torch.IntTensor(self.args.batch_size)
         # text = Variable(text)
@@ -45,43 +48,54 @@ class Trainer(object):
             self.model.train()
 
             for batch in self.train_loader:
+                self.optimizer.zero_grad()
                 input_data = batch.text
+                # input_data = input_data.float()
+                input_data = input_data.to(device)
                 preds = self.model(input_data)
                 loss = self.criterion(preds, batch.label)
-                self.optimizer.zero_grad()
                 clip_grad_norm_(self.model.parameters(), self.args.clip)
                 loss.backward()
                 self.optimizer.step()        
                 batch_losses = loss.item() + batch_losses
                 if total_step % 100 == 0:
-                    print(mes.format(self.epoch,total_step, len(self.train_loader), 
+                    # logger.info('train input data %s ' % input_data)
+                    # logger.info('train input data label %s ' % batch.label)
+                    logger.info(mes.format(self.epoch,total_step, len(self.train_loader), 
                                     (total_step/len(self.train_loader)),batch_losses/100))     
                     batch_losses = 0
-                    accuracy, n_correct, valid_loss = self.valid()
-                    print('valid accuracy {}, num_correct {:.2f}, valid {:.4f}'.format(accuracy, n_correct, valid_loss))
-                    self.lr_scheduler.step(valid_loss)
-                    if accuracy > self.best_accuracy:
-                        self.save_model('test_paper_best')
-                        self.best_accuracy = accuracy
-                    self.model.train()
-
                 total_step += 1
-                
             
             self.epoch += 1
 
+            # if self.epoch % 50 == 0:
+            accuracy, n_correct, valid_loss = self.valid()
+            logger.info('valid accuracy {:.4f}, num_correct {:.2f}, valid {:.4f}'.format(accuracy, n_correct, valid_loss))
+            self.lr_scheduler.step(valid_loss)
+            if accuracy > self.best_accuracy:
+                self.save_model('test_paper_best')
+                self.best_accuracy = accuracy
+            
+            
+            total_step = 0
+
 
     def valid(self):
-        print('begin valid data ...')
+        logger.info('begin valid data')
         self.model.eval()
-
+        if self.use_cuda:
+            dtype = torch.cuda.FloatTensor
+        else:
+            dtype = torch.FloatTensor
+        device = torch.device("cuda" if self.use_cuda else "cpu")
         count = 0
         valid_loss = 0.
         n_correct = 0.
-
+        total = 0
         with torch.no_grad():
             for batch in self.valid_loader:
                 input_data = batch.text
+                input_data = input_data.to(device)
                 preds = self.model(input_data)
                 loss = self.criterion(preds, batch.label)
                 valid_loss += loss.item()
@@ -89,11 +103,12 @@ class Trainer(object):
                 for pred, target in zip(preds_target, batch.label):
                     if pred == target:
                         n_correct = n_correct + 1
-
-            print('preds target:', preds_target)
-            print('real target:', batch.label)
+                total = total + len(batch.label)
+            logger.info('input data %s' % input_data)
+            logger.info('preds target %s' % preds_target)
+            logger.info('real target %s' % batch.label)
         valid_loss = valid_loss / len(self.valid_loader)
-        accuracy = n_correct / (len(self.valid_loader) * self.args.batch_size)
+        accuracy = n_correct / total
 
         return accuracy, n_correct, valid_loss
 
@@ -101,7 +116,7 @@ class Trainer(object):
         if not os.path.isdir(self.args.save_dir):
             os.makedirs(self.args.save_dir)
         save_path = join(self.args.save_dir, model_name+'.pt')
-        print("Saving checkpoint to {}".format(save_path))
+        logger.info("Saving checkpoint to {}".format(save_path))
         torch.save(self.model.state_dict(), save_path)
 
 

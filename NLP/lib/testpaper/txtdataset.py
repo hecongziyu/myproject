@@ -1,13 +1,13 @@
 # import torch.utils.data as data
 import os
-import jieba
 import torch
 from torchtext.data.example import Example
 import torchtext.data as data
 import numpy as np
 import pkuseg
-from txt_utils import gen_question_no
+from utils.txt_utils import gen_question_no
 import copy
+from config import logger
 
 '''
 1、https://blog.csdn.net/guofei_fly/article/details/104168560 torchtext的简单使用
@@ -25,9 +25,12 @@ torchtext是一个高效、有力的文本预处理库（其对NLP的作用类�
 TAG_QUESTION = 1
 TAG_CONTENT = 2
 TAG_ANSWER = 3
+TAG_ANSWER_AREA = 4
 
-TARGETS = {1:'QUERSTION', 2:'CONTENT', 3:'ANSWER'}
-STOP_WORDS = ['的','地', ',','.','，','得','(','（',')','）']
+TARGETS = {1:'QUERSTION', 2:'CONTENT', 3:'ANSWER', 4:'ANSWER_AREA'}
+STOP_WORDS = ['的','地', ',','.','，','得','(','（',')',
+              '）','_','—','。','{','}','(',')','.','【','】',
+              '：','；',':',']','[','｛','｝','。','}{','…………','∥{']
 
 # 定义分词工具
 
@@ -40,11 +43,10 @@ STOP_WORDS = ['的','地', ',','.','，','得','(','（',')','）']
 
 
 
-def build_vocab(field, dataset, lexicon):
-    vocab_lists = [x.text for x in dataset]
+def build_vocab(field, lexicon):
+    vocab_lists = []
+    lexicon = sorted(lexicon)
     vocab_lists.append(lexicon)
-    # vocab_lists.append(lexicon)
-    # print('vocab lists: ', vocab_lists)
     field.build_vocab(vocab_lists, min_freq=1)
 
 
@@ -68,14 +70,16 @@ class TextPaperDataSet(data.Dataset):
 
 
     def __load_dataset__(self):
-        print('begin load data ..................................................')
+        logger.info('begin load data')
         data_path = os.path.sep.join([self.data_root, '{}.txt'.format(self.split)])
         examples = []
         with open(data_path, 'r', encoding='UTF-8-sig') as f:
             source = f.readlines()
         for line in source:
             d,l = line.rsplit('|',1)
-            examples.append([d,l])
+            d = d.replace('（','(').replace('）',')').replace('．','.').replace('、','.').replace(',','.').replace('，','.')
+            if d is not None and len(d) > 0:
+                examples.append([d,l])
         return examples
 
 
@@ -114,38 +118,47 @@ if __name__ == '__main__':
     seg = pkuseg.pkuseg(user_dict=lexicon)    
 
     def tokenizer(text):    
-        # print('text:', text)
-        # print('cut text:', [wd for wd in seg.cut(text)])
-        return [wd for wd in seg.cut(text)]    
+        words = [wd for wd in seg.cut(text) if wd in lexicon]    
+        words = list(set(words))
+        return words
 
-    TEXT = data.Field(tokenize=tokenizer,lower=False, batch_first=True, postprocessing=None,stop_words=STOP_WORDS)
+    TEXT = data.Field(tokenize=tokenizer,lower=False, batch_first=True, init_token='<pad>',fix_length=20,postprocessing=None, stop_words=STOP_WORDS)
     LABEL = data.Field(sequential=False, use_vocab=False)
-    train = TextPaperDataSet(data_root=args.data_root, split='train', token=None, fields=[('text',TEXT),('label', LABEL)])
-    valid = TextPaperDataSet(data_root=args.data_root, split='valid', token=None, fields=[('text',TEXT),('label', LABEL)])
 
-    # for _ in range(3):
-    for item in valid:
-        print('text:', item.text, ' label:', item.label)
-        # pass
+    train = TextPaperDataSet(data_root=args.data_root, split='test', token=None, fields=[('text',TEXT),('label', LABEL)])
+    valid = TextPaperDataSet(data_root=args.data_root, split='test', token=None, fields=[('text',TEXT),('label', LABEL)])
 
     # 注意因为是采用增强数据方式，所以需预先将用户字典增加到TEXT field vocab里面去
-    build_vocab(TEXT, train, lexicon)
+    build_vocab(TEXT, lexicon)
+
+
+
+    # for item in train:
+    #     print('text:', item.text, ' label:', item.label)
+
 
     train_iter,valid_iter = BucketIterator.splits(
         (train,valid),
-        batch_sizes=(4,4),
+        batch_sizes=(16,16),
         device=torch.device('cpu'),
         sort_key=lambda x:len(x.text),
         sort_within_batch=False,
+        sort = False,
+        shuffle=True,
         repeat=False)
 
+    print(TEXT.vocab.stoi)
    
-    for batch in valid_iter:
-        feature, target = batch.text, batch.label     
-        print('feature: ', feature)
-        print('target:', target)
-        print('feature size:', feature.size())
-        break;
+    for _ in range(4):
+        for batch in valid_iter:
+            feature, target = batch.text, batch.label     
+            print('feature: ', feature)
+            print('target:', target)
+            print('feature size:', feature.size())
+            break;
+        # break;
+    # print(TEXT.vocab.stoi)
+    print('vocab len:', len(TEXT.vocab))
 
 
 

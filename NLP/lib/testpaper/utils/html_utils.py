@@ -1,6 +1,8 @@
 from html.parser import HTMLParser
+import chardet
 
 # https://www.cnblogs.com/liuhaidon/archive/2019/12/18/12060184.html
+# https://www.cnblogs.com/schut/p/10579955.html 检测文件编码
 
 class PaperHTMLParser(HTMLParser):
     def __init__(self):
@@ -45,12 +47,15 @@ class PaperHTMLParser(HTMLParser):
     def handle_data(self, data):
         data = data.replace('\n','')
         if self.recording:
-            self.paragraph = self.paragraph + ' ' + data.strip()
+            self.paragraph = self.paragraph + data.strip()
 
 
-def parse_paper(file_name):
+def parse_html_paper(file_name):
     print('file name:', file_name)
-    with open(file_name, 'r') as f:
+    result = check_file_character(file_name)
+    print('character:', result)
+    encode = 'utf-8' if result['encoding'] == 'utf-8' else 'GBK'
+    with open(file_name, 'r', encoding='GBK') as f:
         content = f.read()
 
     parser = PaperHTMLParser()
@@ -59,9 +64,17 @@ def parse_paper(file_name):
     print('\n'.join(parser.data))
     return parser.data, parser.image_map
 
+def check_file_character(file_name):
+    with open(file_name, 'rb') as f:
+        data = f.read()
+        result = chardet.detect(data)
+    return result
+
+
+
     
 
 
 
 if __name__ == '__main__':
-    parse_paper(u'D:\\PROJECT_TW\\git\\data\\testpaper\\output\\207雅礼高一上第三次月考-教师版.html')
+    parse_html_paper(u'D:\\PROJECT_TW\\git\\data\\testpaper\\html\\207雅礼高一上第三次月考-教师版.html')

@@ -1,6 +1,5 @@
 # -*- coding: UTF-8 -*-
 from collections import Counter
-import jieba
 from itertools import product
 
 # UNK_TOKEN = 0
@@ -28,14 +27,15 @@ from itertools import product
 
 # 生成题号
 def gen_question_no():
-    question_no= [list(range(1,99)), 
+    question_no= [list(range(1,50)), 
                         '一,二,三,四,五,六,七,八,九,十'.split(','),
-                        'A,B,C,D,E,F,G'.split(',')]
+                        # 'A,B,C,D,E,F,G'.split(','),
+                        'Ⅰ,Ⅱ,Ⅲ,i,ii,ⅰ,ⅱ'.split(',')]
     # 不需加标点符号
-    querstion_no_special = '①,②,③,④,⑤,⑥,⑦,⑧,⑨,⑩'.split(',')
+    querstion_no_special = '①,②,③,④,⑤,⑥,⑦,⑧,⑨,⑩,⑴,⑵'.split(',')
 
     # 标点符号
-    punctuation = ['.',',','、', ')' ,'）', ('(',')'), ('（', '）')]
+    punctuation = ['.',')','题',('(',')')]
 
     qn_lists = []
 
@@ -49,6 +49,17 @@ def gen_question_no():
     qn_lists.extend(querstion_no_special)
     # print(len(qn_lists))
     return qn_lists
+
+def gen_question_no_type():
+    qn_type = {}
+    qn_type['TYPE_A'] = [str(x) for x in list(range(1,50))]
+    qn_type['TYPE_B'] = '一,二,三,四,五,六,七,八,九,十'.split(',')
+    qn_type['TYPE_C'] = '①,②,③,④,⑤,⑥,⑦,⑧,⑨,⑩'.split(',')
+    qn_type['TYPE_D'] = 'Ⅰ,Ⅱ,Ⅲ'.split(',')
+    qn_type['TYPE_E'] = 'i,ii,ⅰ,ⅱ'.split(',')
+    return qn_type
+
+
 
 
 # 创建字典

@@ -1,0 +1,27 @@
+eureka:
+  domain_name: ''
+  client:
+    serviceUrl:
+      defaultZone: http://platform:platform123@192.168.141.203:10001/eureka/
+  instance:
+    prefer-ip-address : true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+server:
+  libreoffice: D:\tools\libreoffice\program\soffice
+
+paper:
+  data_root: D:\PROJECT_TW\git\data\testpaper\source\paper
+  temp_path: D:\PROJECT_TW\git\data\testpaper\html
+  ouput_path: D:\PROJECT_TW\git\data\testpaper\output
+  vocab: D:\PROJECT_TW\git\data\testpaper\weights\paper_vocab.pkl
+  lexicon: D:\PROJECT_TW\git\data\testpaper\weights\use_dict.txt
+  model:
+    input_dim: 20
+    hidden_dim: 128
+    embed_dim: 64
+    use_cuda: False
+    path: D:\PROJECT_TW\git\data\testpaper\weights\paper_detect_best.pth
+
+

@@ -37,11 +37,13 @@ class TextClassify(nn.Module):
     '''
     对文字串编码后，进行归类，分为 标题、问题、答案、解析等，训练目的，固化对文字串的编码，供后续问题分级用
     '''
-    def __init__(self, vocab_size, embed_dim, hidden_dim, num_class, drop_out=0.5):
+    def __init__(self, input_dim, hidden_dim, num_class, drop_out=0.2):
         super(TextClassify, self).__init__()
-        self.txt_embedding = TextEmbedding(vocab_size, embed_dim, hidden_dim)
-        self.layers = nn.Sequential(nn.Linear(hidden_dim, 256), nn.ReLU(),nn.Linear(256, 256), nn.Linear(256, 128), nn.ReLU())
-        self.fc = nn.Linear(128, num_class)
+        # self.txt_embedding = TextEmbedding(vocab_size, embed_dim, hidden_dim)
+        self.layers = nn.Sequential(nn.Linear(input_dim, hidden_dim),nn.ReLU(),
+                                    nn.Linear(hidden_dim, 256),nn.Linear(256,256), nn.ReLU(), 
+                                    nn.Linear(256, 128),nn.Linear(128, 64), nn.ReLU())
+        self.fc = nn.Linear(64, num_class)
         self.dropout = nn.Dropout(drop_out)
         self.softmax = nn.Softmax(dim=-1)
 
@@ -51,11 +53,11 @@ class TextClassify(nn.Module):
         '''
         # print('input size :', input_data.size())
         # print('input data:', input_data)
-        output, _ = self.txt_embedding(input_data)
-        output = output[:,-1,:]
-        output = self.layers(output)
-        output = self.dropout(output)
-        output = F.relu(self.fc(output),inplace=True)
+        # output, _ = self.txt_embedding(input_data)
+        # output = output[:,-1,:]
+        output = self.layers(input_data)
+        output = F.relu(self.fc(output))
+        # output = self.dropout(output)
         output = self.softmax(output)
         return output
 
