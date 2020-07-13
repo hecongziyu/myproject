@@ -21,15 +21,19 @@ D:\tools\libreoffice\program>soffice.bin --convert-to html d:\公司战略学习
 '''
 
 
-def convert_docx(process, file_name, output_dir):
+def convert_docx_to_html(process, file_name, output_dir):
     start_time = time.time()
     print('file name:', file_name)
     print('process:', process)
     # html:HTML (StarWriter):EmbedImages
     # subprocess.call([process, '--convert-to', 'html:XHTML Writer File:UTF8', file_name, '--outdir', output_dir])'--convert-images-to','jpg'
     subprocess.call([process,'--headless' ,'--convert-to', 'html:HTML (StarWriter):EmbedImages','--convert-images-to','jpg' ,file_name, '--outdir', output_dir])
-    print('use time:' , (time.time() - start_time))
+    print('convert to html use time:' , (time.time() - start_time))
 
+def convert_docx_to_text(process, file_name, output_dir):
+    start_time = time.time()
+    subprocess.call([process,'--headless' ,'--convert-to', 'txt:Text (encoded):UTF8',file_name, '--outdir', output_dir])
+    print('convert to text use time:' , (time.time() - start_time))
 
 
 

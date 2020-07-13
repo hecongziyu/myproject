@@ -29,15 +29,6 @@ class Trainer(object):
         self.device = torch.device("cuda" if use_cuda else "cpu")
         self.best_accuracy = -1
 
-    def __batch_text__(self, data):
-        text, lengths = data
-        lengths = lengths.tolist()
-        text = [x[:lengths[idx]] for idx,x in enumerate(text)]
-        lengths = [0] + lengths
-        lengths = torch.tensor(lengths[:-1]).cumsum(dim=0)
-        text = torch.cat(text)
-        return text, lengths
-
     def train(self):
         mes = "Epoch {}, step:{}/{} {:.2f}%, Loss:{:.4f}"
         if self.use_cuda:
@@ -58,20 +49,14 @@ class Trainer(object):
 
             for batch in self.train_loader:
                 self.optimizer.zero_grad()
-                # input_data, offsets = batch.text
-                input_data, offsets =  self.__batch_text__(batch.text)
+                input_data = batch.text
+                # input_data = input_data.float()
                 input_data = input_data.to(device)
-                offsets = offsets.to(device)
-                preds = self.model(input_data, offsets)
-                # preds = self.model(input_data)
-
+                preds = self.model(input_data)
                 loss = self.criterion(preds, batch.label)
                 clip_grad_norm_(self.model.parameters(), self.args.clip)
                 loss.backward()
                 self.optimizer.step()        
-                # print('input data:', input_data)
-                # print('label:', batch.label)
-                # return
                 batch_losses = loss.item() + batch_losses
                 if total_step % 100 == 0:
                     # logger.info('train input data %s ' % input_data)
@@ -86,14 +71,12 @@ class Trainer(object):
             # if self.epoch % 50 == 0:
             accuracy, n_correct, valid_loss = self.valid()
             logger.info('valid accuracy {:.4f}, num_correct {:.2f}, valid {:.4f}'.format(accuracy, n_correct, valid_loss))
-            self.lr_scheduler.step(valid_loss)
-            # self.lr_scheduler.step()
+            # self.lr_scheduler.step(valid_loss)
+            self.lr_scheduler.step()
             if accuracy > self.best_accuracy:
-                self.save_model('paper_detect_best')
+                self.save_model('test_paper_best')
                 self.best_accuracy = accuracy
-
-            if accuracy == 1:
-                return 
+            
             
             total_step = 0
 
@@ -112,12 +95,9 @@ class Trainer(object):
         total = 0
         with torch.no_grad():
             for batch in self.valid_loader:
-                input_data, offsets =  self.__batch_text__(batch.text)
-                # input_data, offsets =  batch.text
+                input_data = batch.text
                 input_data = input_data.to(device)
-                offsets = offsets.to(device)
-                preds = self.model(input_data,offsets)
-
+                preds = self.model(input_data)
                 loss = self.criterion(preds, batch.label)
                 valid_loss += loss.item()
                 preds_target = torch.argmax(preds, dim=1)
@@ -136,7 +116,7 @@ class Trainer(object):
     def save_model(self, model_name):
         if not os.path.isdir(self.args.save_dir):
             os.makedirs(self.args.save_dir)
-        save_path = join(self.args.save_dir, model_name+'.pth')
+        save_path = join(self.args.save_dir, model_name+'.pt')
         logger.info("Saving checkpoint to {}".format(save_path))
         torch.save(self.model.state_dict(), save_path)
 

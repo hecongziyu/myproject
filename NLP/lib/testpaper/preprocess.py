@@ -60,16 +60,18 @@ def gen_custom_dict(data_root):
     '''
 
     qn_lists = gen_question_no()
-    custom_str = '''填空题,选择题,img,解析,答案,求,解答,过程,步骤,注意,考生,高等,学校,试题,
+    custom_str = '''填空题,选择题,img,解析,解法,答案,求,解答,过程,步骤,注意,考生,高等,学校,试题,
                     参考答案,点评,解答题,分析,选做题,证明,考试,第一,第二, 第三,部分,文科,
                     数学,理科,小时,面积,函数,速度,范围,令,验证,要求,正确,错误,是否, 理由,
                     化学,计算,若,在,如,图,意思,充分,必要,向量,元素,个数,因为,所以,故,显然,
-                    小题,下图,命题,若,设,已知,满分,解,同理,方程,可证,分析,思路,基础,知识,
+                    小题,下图,命题,若,设,已知,满分,解:,解：,同理,方程,可证,分析,思路,基础,知识,
                     定理,证法,如图,关系,答题卡,答题,观察,说明,文字,满分,分,于是,根据,则,
                     概念,考点,性质,图,因此,综合,化学,实验,选项,其余,题号,其它,给分,检测,
                     模块,期末,期中,选,统一,注意,事项,姓名,座号,规定,涂,改动,必须,签字,2B,
                     铅笔,标号,填写,参考,直接,第,卷,每,右,左,满分,容器,坐标,普通,草稿,橡皮,
-                    改动,整洁,结束,保持,中学,确定,必做题,汇总,成立,答,不,下列,结束,点拨,精讲,精析,命题,意图,评分,标准'''
+                    改动,整洁,结束,保持,中学,确定,必做题,汇总,成立,答,不,下列,结束,点拨,
+                    精讲,精析,命题,意图,评分,标准,解析式,答案汇总,评分标准,与,共,本部分,
+                    ,每小题,无解,】,【,:,：,∴,∵'''
     alpha_lists = ['A.', 'A)', '(A)', 'B.', 'B)', '(B)', 'C.', 'C)', '(C)', 'D.', 'D)', '(D)', 'E.', 'E)', '(E)', 'F.', 'F)', '(F)', 'G.', 'G)', '(G)']
     qn_lists.extend(custom_str.split(','))
     qn_lists.extend(alpha_lists)
@@ -79,7 +81,7 @@ def gen_custom_dict(data_root):
 
     print(qn_lists)
 
-    with open(os.path.sep.join([data_root,'use_dict.txt']), 'w', encoding='utf-8') as f:
+    with open(os.path.sep.join([data_root,'weights','use_dict.txt']), 'w', encoding='utf-8') as f:
         f.writelines([x + '\n' for x in qn_lists])
 
     print('生成分词字典完成')
@@ -100,29 +102,31 @@ def tokenizer_lists(seg, lines,lexicon):
     return tokens
 
 
-def build_vocab(data_root):
-    '''
-    创建词向量表
-    '''
+# def build_vocab(data_root):
+#     '''
+#     创建词向量表
+#     '''
 
-    # 初始化分词工具
-    lexicon = load_custom_dict(data_root)
-    lexicon.sort()
-    seg = pkuseg.pkuseg(user_dict=lexicon) 
+#     # 初始化分词工具
+#     lexicon = load_custom_dict(data_root)
+#     lexicon.sort()
+#     seg = pkuseg.pkuseg(user_dict=lexicon) 
 
-    TEXT = data.Field(tokenize=None,lower=False, batch_first=True, postprocessing=None,stop_words=STOP_WORDS)
-
-
-    # file_lists = os.listdir(os.path.sep.join([data_root, 'output']))
-    file_contents = []
-    file_contents.append(lexicon)
+#     TEXT = data.Field(tokenize=None,lower=False, batch_first=True, postprocessing=None,stop_words=STOP_WORDS)
 
 
-    print('tokens:', len(file_contents))
-    TEXT.build_vocab(file_contents,min_freq=1)
+#     # file_lists = os.listdir(os.path.sep.join([data_root, 'output']))
+#     file_contents = []
+#     file_contents.append(lexicon)
 
-    print(TEXT.vocab.itos)
-    print(len(TEXT.vocab))
+
+#     print('tokens:', len(file_contents))
+#     TEXT.build_vocab(file_contents,min_freq=1)
+
+#     print(TEXT.vocab.itos)
+#     print(len(TEXT.vocab))
+#     return TEXT.vocab
+    
 
 def gen_train_file(data_root):
 
@@ -160,7 +164,7 @@ def gen_train_file(data_root):
 
 
 def load_custom_dict(data_root):
-    with open(os.path.sep.join([data_root,'use_dict.txt']), 'r', encoding='utf-8') as f:
+    with open(os.path.sep.join([data_root,'weights','use_dict.txt']), 'r', encoding='utf-8') as f:
         lexicon = f.readlines()
     lexicon = [x.strip() for x in lexicon]
     lexicon = list(set(lexicon))
