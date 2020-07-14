@@ -32,6 +32,7 @@ def adjuest_paper_content(file_name, hcontents):
         txtcnts = f.readlines()
     a_contents = []
     current_t_idx = 0
+    
     for hitem in hcontents:
         flag_sim = False
         for cidx in range(current_t_idx, len(txtcnts)):
@@ -45,6 +46,7 @@ def adjuest_paper_content(file_name, hcontents):
 
         if flag_sim:
             _contents = combine_include_img_str(hitem,txtcnts[current_t_idx].replace('\n','').strip())
+            current_t_idx = current_t_idx + 1
             # _contents = txtcnts[current_t_idx].replace('\n','').strip()
             a_contents.append(_contents)
         else:
@@ -73,7 +75,7 @@ def gen_train_data_file(file_name):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="试卷导入功能")
     parser.add_argument("--config_file", default="bootstrap.yml", help="配置文件路径", type=str)
-    parser.add_argument("--file_name", default=u"数学答案-期中考试答案.doc", help="配置文件路径", type=str)
+    parser.add_argument("--file_name", default=u"2104年湖南长沙中考化学试卷.doc", help="配置文件路径", type=str)
     args = parser.parse_args()
     cfg.merge_from_file(args.config_file)    
     print(cfg.paper.ouput_path)

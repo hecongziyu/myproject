@@ -90,75 +90,57 @@ class TestPaperParse(object):
     def detect_by_idx(self, idx):
         return self.line_detect_lists[idx]
 
-    def __get_detect_type_lists__(self, lines):
-        self.line_detect_lists = [self.pdetect.detect(x.strip()) for x in lines]
-
-        # 答案开始标记
-        ans_start_flags = []
-
-        # 标记问题开始
-        cur_question_level = None
-        cur_question_id = None
-
-        # 该问题级别下的问题ID号
-        qus_level_ids = {}
-
-        # 修改部分检测的文本类型，主要是针对解答部分的子问题错误
-        for idx, _ in enumerate(self.line_detect_lists):
-            ltype, (qlevel, l_id) = self.line_detect_lists[idx]
-
-            if ltype == TAG_QUESTION:
-                if qlevel in ans_start_flags:
-                    # 本次问题级别已开始问题答案
-                    # 检测本级别问题是否有相同题号，如存在相同题号，则表明该问题应为上一问题答案
-                    if l_id in qus_level_ids[qlevel]:
-                        self.line_detect_lists[idx] = [TAG_ANSWER, (None,None)]
-
-                # 问题已发生变化，到新级别问题, 清理缓存
-                if qlevel != cur_question_level:
-                    if cur_question_level in ans_start_flags:
-                        del ans_start_flags[ans_start_flags.index(cur_question_level)]
-
-                    if cur_question_level in qus_level_ids:
-                        del qus_level_ids[cur_question_level]
-
-                cur_question_level = qlevel
-                cur_question_id = l_id
-                if qlevel not in qus_level_ids:
-                    qus_level_ids[qlevel] = [l_id]
-                else:
-                    qus_level_ids[qlevel].append(l_id)
-
-            elif ltype == TAG_ANSWER:
-                if  cur_question_level not in ans_start_flags:
-                    ans_start_flags.append(cur_question_level)
 
 
     def __get__detect_type_lists_2__(self, lines):
         self.line_detect_lists = [self.pdetect.detect(x.strip()) for x in lines]
+
+        # print('line detect:', self.line_detect_lists)
+        # print('lines:', lines)
+
         answer_start_flag = False
+        # 大题标记开始
+        master_question_flags = False
         answer_question_levels = []
         answer_question_ids = []
 
         for idx, _ in enumerate(self.line_detect_lists):
             ltype, (qlevel, l_id) = self.line_detect_lists[idx]
+            # print('----------------------------------')
+            # print('lines:', lines[idx], ': level:', qlevel, ' answer_start_flag:', answer_start_flag)
+            # print('answer_question_levels:', answer_question_levels)
+            # print('----------------------------------')
             if answer_start_flag:
+                # 已开始回答
                 if ltype == TAG_QUESTION:
                     if l_id in answer_question_ids:
                         self.line_detect_lists[idx] = [TAG_ANSWER, (None,None)]
                     else:
-                        if qlevel in answer_question_levels:
+                        # 临时改动，因为问题主要是三级，所以子问题通常都在第三级，这里取二级目录
+                        # if qlevel in answer_question_levels:
+                        if qlevel in answer_question_levels[0:2]:
                             answer_start_flag = False
-                            answer_question_levels = answer_question_levels[0:answer_question_levels.index(qlevel)+1]
+                            answer_question_levels = answer_question_levels[0:2]
                             answer_question_ids = [l_id]
                         else:
                             self.line_detect_lists[idx] = [TAG_ANSWER, (None,None)]
             else:
                 if ltype == TAG_QUESTION:
-                    if qlevel not in answer_question_levels:
-                        answer_question_levels.append(qlevel)
-                    answer_question_ids.append(l_id)
-                elif ltype == TAG_ANSWER:
+                    # 检测是否大题标记开始
+                    if not master_question_flags:
+                        qtype = self.pdetect.detect_question_type(lines[idx])
+                        if qtype in [Q_TYPE_SELECT,Q_TYPE_EMPTY,Q_TYPE_QA]: 
+                            master_question_flags = True
+
+                    if master_question_flags:
+                        if qlevel not in answer_question_levels:
+                            answer_question_levels.append(qlevel)
+                        answer_question_ids.append(l_id)
+                    else:
+                        # 大题还没开始，该部分内容为前面的说明性内容，直接标记为内容
+                        self.line_detect_lists[idx] = [TAG_CONTENT, (None,None)]                    
+
+                elif ltype == TAG_ANSWER and master_question_flags:
                     answer_start_flag = True
 
 
@@ -166,7 +148,7 @@ class TestPaperParse(object):
     # 将试卷内容进行分隔，分隔成问题区域、参考答案区域， 并去掉一些无用的行
     def paper_split_content(self,lines):
         lines = [x.strip() for x in lines]
-
+        lines = [x.replace('Ⅰ','I').replace('Ⅱ','II').replace('Ⅲ','III').replace('ⅰ','ii').replace('ⅱ','ii') for x in lines]
         self.origin_paper_lines = lines
         self.__get__detect_type_lists_2__(lines)
 
@@ -194,22 +176,24 @@ class TestPaperParse(object):
     def paper_split_answer_area_2(self, answer_lines):
         # 标记答案开始标记
         answer_start_level = []
+
         answer_cur_idx = None
         for aidx,aline in enumerate(answer_lines):
-            # 将行里面带的答案的字去掉
+            # 将行里面带的答案的字去掉, 需要找到原始答案对应的问题
+            dline = aline.replace('解','').replace('答','').replace('命题','').replace('意图','').replace('【','')
+            dline = dline.replace('】','').replace('证明','')
 
-            dline = aline.replace('解','').replace('答','').replace('命题','')
-            ltype, (qlevel, l_id) = self.pdetect.detect(aline)
+            ltype, (qlevel, l_id) = self.pdetect.detect(dline)
+
+            # print('......................................................')
+            # print('text:', dline)
+            # print('result:', ltype, ':', qlevel, ':', l_id)
+
 
             if ltype == TAG_QUESTION:
 
-                
                 result = self.__find_question_by_level__(question_level=qlevel, question_no=l_id, has_no_answer=True)
 
-                # print('......................................................')
-                # print('text:', aline)
-                # print('result:', result)
-                # print('......................................................')
 
                 # 检测是否是新题答案， 检测当前级别与检测的级别、或检测级别的当级级别是否相同
                 # 这里采用了简化的方式，选择不是第一级目录的问题
@@ -234,44 +218,6 @@ class TestPaperParse(object):
 
 
 
-
-    # 参考答案区域解析、划分
-    def paper_split_answer_area(self, answer_lines):
-        # print('answer lines:', answer_lines)
-        '''
-        处理流程：
-        1、从question list找到大题（选择题、填空题、。。。）的类型
-        2、分解answer_lines，分隔成大题区域
-        3、针对大题，对大题里的内容用正则方式进行分隔（采用不同方式），再设置到question里对应的题目上面
-        '''
-        _area_select = []
-        _area_empty = []
-        _area_qa = []
-
-        _area_flag = None
-
-        for aidx,aline in enumerate(answer_lines):
-            ltype, (qlevel, l_id) = self.pdetect.detect(aline)
-            if ltype == TAG_QUESTION:
-                qtype = self.pdetect.detect_question_type(aline)
-                if qtype != Q_TYPE_UNK:
-                    _area_flag = qtype
-
-            if _area_flag == Q_TYPE_SELECT:
-                _area_select.append(aline)
-            elif _area_flag == Q_TYPE_EMPTY:
-                _area_empty.append(aline)
-            elif _area_flag == Q_TYPE_QA:
-                _area_qa.append(aline)
-
-        if _area_select:
-            self.__merge_answer_select__(_area_select)
-
-        if _area_empty:
-            self.__merge_answer_empty__(_area_empty)
-
-        if _area_qa:
-            self.__merge_anser_qa__(_area_qa)
 
     def __find_question_by_no__(self,parent_id, question_type,question_no=None):
         if question_no is not None:
@@ -670,7 +616,7 @@ class TestPaperParse(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="试卷导入功能")
     parser.add_argument("--config_file", default="bootstrap.yml", help="配置文件路径", type=str)
-    parser.add_argument("--file_name", default=u"数学答案-期中考试答案.txt", help="配置文件路径", type=str)
+    parser.add_argument("--file_name", default=u"2104年湖南长沙中考化学试卷.txt", help="配置文件路径", type=str)
     parser.add_argument("--data_root", default="D:\\PROJECT_TW\\git\\data\\testpaper", help="配置文件路径", type=str)
     args = parser.parse_args()
     cfg.merge_from_file(args.config_file)    
@@ -708,13 +654,15 @@ if __name__ == '__main__':
     # pdetect.detect('解：（Ⅰ）由已知，{img:230}')
     # pdetect.detect('解析：（1）因为满足')
     # pdetect.detect('{img:6}(1) 你所观察到的现象是什么?')
+    pdetect.detect('一、选择题：{img:3}本大题共l0小题．每小题5分，共50分在每小题给出的四个选项中，只')
     pdetect.detect('二、解答题 （本大题共6小题，共90分.请在 答题卡制定区域内作答，解答时应写出文字说明、证明过程或演算步骤.） [来源:学*科*网]"}')
     pdetect.detect('【答案】（1）{img:277}．（2）{img:278}.\n')
-
+    pdetect.detect('（18）【命题意图】本题考查导数的运 算，极值点的判断，导数符号与函数单调变化之间的关系.求解二次不等式，考查运算能力，综合运用知识分析和解决问题的能力')
+    pdetect.detect('（17）【命题意图】本题考查直线与直线的位置关系，线线相交的判断与证明.点在曲线上的判断与证明.椭圆方程等基本知识.考查推理论证能力和运算求解能力')
     with open(os.path.sep.join([args.data_root,'output', args.file_name]), 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
-
+    # print('lines:', lines)
     paper.paper_split_content(lines)
     # print('\n--------------------------------\n'.join([str(x) for x in paper.question_lists]))
 
