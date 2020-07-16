@@ -80,15 +80,29 @@ def combine_include_img_str(img_str, sim_str):
     img_lists = re.findall(r'\{img:\d+\}', img_str)
     if len(img_lists) == 0:
         return sim_str
-    img_len_lists = [len(x) for x in img_lists]
+
+    # 定位不包含{img}字符的开始位置
+    no_img_str =  re.sub(r'\{img:\d+\}','',img_str)
+    no_img_pos_begin = img_str.find(no_img_str[0])
+
+    # print('no img str:', no_img_str, ' no img pos begin:', no_img_pos_begin)
+
+    # 注意长度需-1， 因为后面定位时，定位位置是从0开始的, 采用cumsum会多累加一位的长度
+    img_len_lists = [len(x) - 1 for x in img_lists]
     img_len_lists.insert(0,0)
+    # print('befor cosume:', img_len_lists)
     img_len_lists = np.cumsum(img_len_lists).tolist()
 
+    no_img_pos_lists = [no_img_pos_begin - img_len_lists[idx] for idx,x in enumerate(img_lists)][1:]
+    no_img_pos_lists = [x for x in no_img_pos_lists if x > 0]
+    no_img_pos_begin = min(no_img_pos_lists) if len(no_img_pos_lists) > 0 else -1
+
     # {img:xx} 在字符串的位置
-    # img_pos_lists = [img_str.find(x) for idx,x in enumerate(img_lists)]
+    img_pos_lists = [img_str.find(x)  for idx,x in enumerate(img_lists)]
     # print('before img_pos_lists', img_pos_lists)
     # print('image len lists:', img_len_lists)
     img_pos_lists = [img_str.find(x)-img_len_lists[idx] for idx,x in enumerate(img_lists)]
+    
     
 
     # 包含{img:xx}的字符串，去掉{img:xx}， 然后依次与 sim_str进行比较
@@ -102,19 +116,84 @@ def combine_include_img_str(img_str, sim_str):
     _first_sim_pos = 0
 
     # print('after img pos lists:', img_pos_lists)
+    # print('no img begin pos lists:', no_img_pos_lists, ' no img pos begin :', no_img_pos_begin)
     # print('sim_str_lists:', sim_str_lists)
     # print('img_str_lists:', img_str_lists)
 
-    _pos_is_zero_len = len([x for x in img_pos_lists if x == 0])
 
-    for img_idx, img_pos in enumerate([x for x in img_pos_lists if x != 0]):
+    _pos_is_zero_len = len([x for x in img_pos_lists if x < no_img_pos_begin])
+
+    result = list(sim_str)
+    for img_idx, img_pos in enumerate([x for x in img_pos_lists if x > no_img_pos_begin]):
+        result.insert(img_pos, img_lists[img_idx+_pos_is_zero_len])
+
+    
+    for idx in range(_pos_is_zero_len):
+        if _first_sim_pos != 0:
+            result.insert(_first_sim_pos-1, img_lists[_pos_is_zero_len-idx-1])
+        else:
+            result.insert(0, img_lists[_pos_is_zero_len-idx-1])
+    return ''.join(result)
+
+def combine_include_img_str_backup(img_str, sim_str):
+    result = []
+    # 注意img_str需去掉空格，防止空格参与匹配， sim str不以去掉
+    img_str = img_str.replace('[OL]','').replace(' ','').replace('　','')
+    img_lists = re.findall(r'\{img:\d+\}', img_str)
+    if len(img_lists) == 0:
+        return sim_str
+
+    # 定位不包含{img}字符的开始位置
+    no_img_str =  re.sub(r'\{img:\d+\}','',img_str)
+    no_img_pos_begin = img_str.find(no_img_str[0])
+
+    print('no img str:', no_img_str, ' no img pos begin:', no_img_pos_begin)
+
+    # 注意长度需-1， 因为后面定位时，定位位置是从0开始的, 采用cumsum会多累加一位的长度
+    img_len_lists = [len(x) - 1 for x in img_lists]
+    img_len_lists.insert(0,0)
+    # print('befor cosume:', img_len_lists)
+    img_len_lists = np.cumsum(img_len_lists).tolist()
+
+    no_img_pos_lists = [no_img_pos_begin - img_len_lists[idx] for idx,x in enumerate(img_lists)][1:]
+    no_img_pos_lists = [x for x in no_img_pos_lists if x > 0]
+    no_img_pos_begin = min(no_img_pos_lists) if len(no_img_pos_lists) > 0 else -1
+
+    # {img:xx} 在字符串的位置
+    img_pos_lists = [img_str.find(x)  for idx,x in enumerate(img_lists)]
+    # print('before img_pos_lists', img_pos_lists)
+    # print('image len lists:', img_len_lists)
+    img_pos_lists = [img_str.find(x)-img_len_lists[idx] for idx,x in enumerate(img_lists)]
+    
+    
+
+    # 包含{img:xx}的字符串，去掉{img:xx}， 然后依次与 sim_str进行比较
+    img_str_lists = list(re.sub(r'\{img:\d+\}','',img_str))
+    sim_str_lists = list(sim_str)
+    
+    cur_sim_pos = 0
+    cur_img_str_pos = 0
+
+    # 记录第一个匹配的位置
+    _first_sim_pos = 0
+
+    print('after img pos lists:', img_pos_lists)
+    print('no img begin pos lists:', no_img_pos_lists, ' no img pos begin :', no_img_pos_begin)
+    # print('sim_str_lists:', sim_str_lists)
+    # print('img_str_lists:', img_str_lists)
+
+
+    _pos_is_zero_len = len([x for x in img_pos_lists if x < no_img_pos_begin])
+    _last_img_pos = 0
+
+    for img_idx, img_pos in enumerate([x for x in img_pos_lists if x > no_img_pos_begin]):
         # 检测当前sim 偏移位置是否已大于 sim str长度， 如果超过，证明sim str已匹配完
         # img str: 当时，{img:0}A{img:1} {img:2}
         # sim str: (1) 当时，A
         # img pos lists: [3, 4, 5]
         # sim_str_lists: ['(', '1', ')', ' ', '当', '时', '，', 'A']
         # img_str_lists: ['当', '时', '，', 'A', ' ']
-        # print('pos:', img_pos, ' cur sim pos:', cur_sim_pos, '  len:', len(sim_str_lists))
+        print('pos:', img_pos, ' cur sim pos:', cur_sim_pos, ' cur_img_str_pos:',cur_img_str_pos,'  len:', len(sim_str_lists))
         if cur_sim_pos < len(sim_str_lists) :
             for sidx, _simchar in enumerate(sim_str_lists[cur_sim_pos:]):
                 for _iidx, _imgstrchar in enumerate(img_str_lists[cur_img_str_pos:]):
@@ -122,14 +201,17 @@ def combine_include_img_str(img_str, sim_str):
                     if _simchar == _imgstrchar:
                         if img_idx == 0:
                             _first_sim_pos = sidx
-                        # print('IS OK:', _simchar, ':', _imgstrchar)
+                            # print('IS OK:', _simchar, ':', _imgstrchar)
                         cur_img_str_pos = _iidx + cur_img_str_pos + 1
                         break
 
-                # print('cur img str pos:', cur_img_str_pos, ' char:', _simchar)
+                # print('------------cur img str pos:', cur_img_str_pos, ' char:', _simchar, ' img pos:', img_pos, ' last img pos:', _last_img_pos)
                 result.append(_simchar)
-                if cur_img_str_pos  == img_pos :
+                # 检测该字符串后面的定位位置是否与图片位置相同
+                if cur_img_str_pos == img_pos :
                     cur_sim_pos = sidx + cur_sim_pos + 1
+                    _last_img_pos = img_pos
+                    # cur_img_str_pos = cur_img_str_pos + 1
                     result.append(img_lists[img_idx+_pos_is_zero_len])
                     break
         else:
@@ -147,7 +229,6 @@ def combine_include_img_str(img_str, sim_str):
     return ''.join(result)
 
 
-
 def load_vocab(data_dir):
     with open(join(data_dir, 'vocab.pkl'), 'rb') as f:
         vocab = pkl.load(f)
@@ -156,4 +237,5 @@ def load_vocab(data_dir):
 
 
 if __name__ == '__main__':
+    # combine_include_img_str('')
     pass

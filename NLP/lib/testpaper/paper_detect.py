@@ -120,7 +120,11 @@ class PaperDetect(object):
 
         # 防止 img 出现 1{img:12}. 这种情况
         if text.find('{img') != -1:
-            text = re.sub('\{img:\d+\}','',text) + ' {img:1}'    
+            text = re.sub('\{img:\d+\}','',text) + ' {img:1}'  
+
+        # 防止text 后部分出现  一、二、这样类似，引起检测错误
+        if len(text) > 5:
+            text  = text[0:5] + re.sub('[一|二|三|四|五][、|.|,]','',text[5:])
 
         
         words =  self.__split_words__(text)

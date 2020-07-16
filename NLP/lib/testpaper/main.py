@@ -106,10 +106,7 @@ class TestPaperParse(object):
 
         for idx, _ in enumerate(self.line_detect_lists):
             ltype, (qlevel, l_id) = self.line_detect_lists[idx]
-            # print('----------------------------------')
-            # print('lines:', lines[idx], ': level:', qlevel, ' answer_start_flag:', answer_start_flag)
-            # print('answer_question_levels:', answer_question_levels)
-            # print('----------------------------------')
+
             if answer_start_flag:
                 # 已开始回答
                 if ltype == TAG_QUESTION:
@@ -129,7 +126,7 @@ class TestPaperParse(object):
                     # 检测是否大题标记开始
                     if not master_question_flags:
                         qtype = self.pdetect.detect_question_type(lines[idx])
-                        if qtype in [Q_TYPE_SELECT,Q_TYPE_EMPTY,Q_TYPE_QA]: 
+                        if qtype in [Q_TYPE_SELECT,Q_TYPE_EMPTY,Q_TYPE_QA] or l_id in ['一.','二.','三.']: 
                             master_question_flags = True
 
                     if master_question_flags:
@@ -143,19 +140,33 @@ class TestPaperParse(object):
                 elif ltype == TAG_ANSWER and master_question_flags:
                     answer_start_flag = True
 
-
+            # print('----------------------------------')
+            # print('lines:', lines[idx], ': level:', qlevel,' ltype:', ltype, ' lid:', l_id, ' answer_start_flag:', answer_start_flag)
+            # print('answer_question_levels:', answer_question_levels)
+            # print('detect result:', self.line_detect_lists[idx])
+            # print('----------------------------------')
 
     # 将试卷内容进行分隔，分隔成问题区域、参考答案区域， 并去掉一些无用的行
     def paper_split_content(self,lines):
+
         lines = [x.strip() for x in lines]
         lines = [x.replace('Ⅰ','I').replace('Ⅱ','II').replace('Ⅲ','III').replace('ⅰ','ii').replace('ⅱ','ii') for x in lines]
+
+
+
         self.origin_paper_lines = lines
         self.__get__detect_type_lists_2__(lines)
 
+        # print('lines :', len(lines), ' detect lines:', len(self.line_detect_lists))
         line_detect_lists = np.array([self.detect_by_idx(lidx)[0] for lidx, x in enumerate(lines)])
+
+
         q_lines = None
         answer_lines = None
         q_ans_area_pos = np.where(line_detect_lists == TAG_ANSWER_AREA)[0]
+
+        # print('ans area pos:', q_ans_area_pos)
+
         if len(q_ans_area_pos) > 0:
             q_lines = lines[0:q_ans_area_pos[0]]
             answer_lines = lines[q_ans_area_pos[0]:]
@@ -165,15 +176,50 @@ class TestPaperParse(object):
         # 分解试题
         self.question_lists = self.paper_split_question(lines=q_lines)
 
+        # print('-----------------------------------')
+        # print('question : \n', self.question_lists)
+        # print('-----------------------------------')
+
         # 组合试题区域自带答案
         self.merge_question_content(lines=lines)
 
+        # print('answer_lines:', answer_lines)
 
         # 参考答案区域答案处理
         if answer_lines is not None and len(answer_lines) > 0:
             self.answer_areas_lists  = self.paper_split_answer_area_2(answer_lines)
+
+    def __answer_area_adjuest__(self, lines):
+        _alines = []
+        
+        for item in lines:
+            tokens = self.__lexer_token__(item)
+            # print('line:', item ,' tokens:', tokens)
+            if len(tokens) > 1:
+                tok_pos_lists = [x.lexpos for x in tokens]
+                tok_pos_lists.append(len(item))
+                tok_pos_lists = list(zip(tok_pos_lists[0:-1], tok_pos_lists[1:]))  
+                for idx, pos in enumerate(tok_pos_lists):
+                    # print('token line:', item[pos[0]:pos[1]], ' type:', tokens[idx])
+                    if tokens[idx].type == 'SegNum':
+                        _alines.append(item[pos[0]:pos[1]])
+                    elif tokens[idx].type == 'SegNumSpec':
+                        # 特殊的题号  1--4
+                        bidx, eidx = re.findall('\d+',tokens[idx].value)
+                        a_idx_lists = list(range(int(bidx), int(eidx)+1))
+                        a_idx_lists = [str(x) for x in a_idx_lists]
+                        for idx, v in enumerate(re.findall(r'[A-Za-z]', item[pos[0]:pos[1]])):
+                            if idx < len(a_idx_lists):
+                                _alines.append('{}.{}'.format(a_idx_lists[idx], v))
+
+            else:
+                _alines.append(item)
+        return _alines    
     
-    def paper_split_answer_area_2(self, answer_lines):
+    def paper_split_answer_area_2(self, text_lists):
+
+        answer_lines = self.__answer_area_adjuest__(text_lists)
+
         # 标记答案开始标记
         answer_start_level = []
 
@@ -188,6 +234,7 @@ class TestPaperParse(object):
             # print('......................................................')
             # print('text:', dline)
             # print('result:', ltype, ':', qlevel, ':', l_id)
+            # print('answer_start_level:', answer_start_level)
 
 
             if ltype == TAG_QUESTION:
@@ -199,7 +246,9 @@ class TestPaperParse(object):
                 # 这里采用了简化的方式，选择不是第一级目录的问题
                 if result is not None:
                     if qlevel in answer_start_level:
+                        # if len(answer_start_level) > 1:
                         del answer_start_level[answer_start_level.index(qlevel)]
+                        # answer_start_level = []
                         answer_cur_idx = None
 
                     if qlevel not in answer_start_level:
@@ -266,118 +315,6 @@ class TestPaperParse(object):
             tok_lists.append(tok)
         return tok_lists
 
-    # 参考答案区域填选择题将值设置到问题答案区
-    def __merge_answer_select__(self, alines):
-        alines = [x.strip() for x in alines]
-        answer_lines = []
-        for line in alines[1:]:
-            tok_lists = self.__lexer_token__(line)
-            tok_pos = [x.lexpos for x in tok_lists]
-            tok_pos.append(len(line))
-            tok_pos = list(zip(tok_pos[0:-1], tok_pos[1:]))
-            answer_lines.extend([(tok_lists[idx].value, tok_lists[idx].type, line[x[0]:x[1]]) for idx, x in enumerate(tok_pos)])
-
-        ltype, (qlevel, l_id) = self.pdetect.detect(alines[0])
-
-        result = self.__find_question_by_no__(parent_id=0, question_type=Q_TYPE_SELECT,question_no=l_id)
-        if result is None:
-            return
-        p_qidx, p_question = result
-
-
-        for item in answer_lines:
-            val, atype, content = item
-            
-            if atype in ['SegNumOne','SegNumTwo']:
-                # 标准的题号  1. 1)
-                result = self.__find_question_by_no__(parent_id=p_question.qid,
-                                                        question_type=Q_TYPE_SELECT,
-                                                        question_no=val)
-                if result is not None:
-                    qidx, _ = result
-                    self.question_lists[qidx].answer_content = content
-                    self.question_lists[qidx].answer = content.replace(val,'').strip()
-            elif atype == 'SegNumSpec':
-                # 特殊的题号  1--4
-                bidx, eidx = re.findall('\d+',val)
-                a_idx_lists = list(range(int(bidx), int(eidx)+1))
-                a_idx_lists = [str(x) for x in a_idx_lists]
-                for idx, v in enumerate(re.findall(r'[A-Za-z]', content)):
-                    result = self.__find_question_by_no__(parent_id=p_question.qid,
-                                                            question_type=Q_TYPE_SELECT,
-                                                            question_no=a_idx_lists[idx])
-                    if result is not None:
-                        qidx, _ = result
-                        self.question_lists[qidx].answer_content = v
-                        self.question_lists[qidx].answer = v       
-
-
-
-
-
-    # 参考答案区域填空题将值设置到问题答案区
-    def __merge_answer_empty__(self, alines):
-        # print('填空题：', alines)
-        alines = [x.strip() for x in alines]
-        answer_lines = []
-        for line in alines[1:]:
-            tok_lists = self.__lexer_token__(line)
-            tok_pos = [x.lexpos for x in tok_lists]
-            tok_pos.append(len(line))
-            tok_pos = list(zip(tok_pos[0:-1], tok_pos[1:]))
-            answer_lines.extend([(tok_lists[idx].value, tok_lists[idx].type, line[x[0]:x[1]]) for idx, x in enumerate(tok_pos)])
-
-        ltype, (qlevel, l_id) = self.pdetect.detect(alines[0])
-        result = self.__find_question_by_no__(parent_id=0, question_type=Q_TYPE_EMPTY,question_no=l_id)
-        if result is None:
-            return
-        p_qidx, p_question = result
-
-        for item in answer_lines:
-            val, atype, content = item
-            # print('token:',atype , val, ':', content)
-
-            if atype in ['SegNumOne','SegNumTwo']:
-                result = self.__find_question_by_no__(parent_id=p_question.qid,
-                                                        question_type=Q_TYPE_EMPTY,
-                                                        question_no=val)
-                if result is not None:
-                    qidx, _ = result
-                    self.question_lists[qidx].answer_content = content
-                    self.question_lists[qidx].answer = content.replace(val,'').strip()
-            elif atype == 'SegNumSpec':
-                pass
-        
-
-    # 参考答案区域问答题将值设置到问题答案区, 问题只处理大题
-    def __merge_anser_qa__(self, alines):
-        # qlists = [x for x in self.question_lists if (x.parent_qid==0 and x.question_type==Q_TYPE_QA)]
-        # print('qlists:', qlists)
-        # qa_level = None
-        
-        ltype, (qlevel, l_id) = self.pdetect.detect(alines[0])
-        p_qidx, p_question = self.__find_question_by_no__(parent_id=0, question_type=Q_TYPE_QA, question_no=l_id)
-
-        # print('主问题：', p_question)
-
-        cur_qidx = None
-        cur_question = None
-
-        for aline in alines[1:]:
-            ltype, (qlevel, l_id) = self.pdetect.detect(aline)
-            if ltype == TAG_QUESTION:
-                result = self.__find_question_by_no__(parent_id=p_question.qid,
-                                                                      question_type=Q_TYPE_QA,
-                                                                      question_no=l_id)
-                if result is not None:
-                    cur_qidx, cur_question = result
-
-            if cur_qidx != None:
-                self.question_lists[cur_qidx].answer_content = '{}\n{}'.format(self.question_lists[cur_qidx].answer_content,aline)
-
-
-                    
-
 
     # 将试卷问题区域划分
     def paper_split_question(self, lines,parent_id=0,begin_idx=0,parent_question_type=-1, parent_question_level='TOP', answer_start_flag=False):
@@ -411,6 +348,10 @@ class TestPaperParse(object):
             # 检测当前行的类型
             ltype, (qlevel, l_id) = self.detect_by_idx(idx+begin_idx)
             # 对回答区进行处理， 处理回答区中题号问题
+            # print('------------------------------------')
+            # print('line:', line)
+            # print('detect:', ltype, ':', qlevel, ':', l_id)
+            # print('------------------------------------')
 
             if ltype == TAG_QUESTION:
                 question_type = parent_question_type if parent_question_type != -1 else self.pdetect.detect_question_type(line)
@@ -616,7 +557,7 @@ class TestPaperParse(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="试卷导入功能")
     parser.add_argument("--config_file", default="bootstrap.yml", help="配置文件路径", type=str)
-    parser.add_argument("--file_name", default=u"2104年湖南长沙中考化学试卷.txt", help="配置文件路径", type=str)
+    parser.add_argument("--file_name", default=u"2016年秋季长沙市一中高一期中考试试卷--教师版.txt", help="配置文件路径", type=str)
     parser.add_argument("--data_root", default="D:\\PROJECT_TW\\git\\data\\testpaper", help="配置文件路径", type=str)
     args = parser.parse_args()
     cfg.merge_from_file(args.config_file)    
@@ -654,11 +595,15 @@ if __name__ == '__main__':
     # pdetect.detect('解：（Ⅰ）由已知，{img:230}')
     # pdetect.detect('解析：（1）因为满足')
     # pdetect.detect('{img:6}(1) 你所观察到的现象是什么?')
-    pdetect.detect('一、选择题：{img:3}本大题共l0小题．每小题5分，共50分在每小题给出的四个选项中，只')
-    pdetect.detect('二、解答题 （本大题共6小题，共90分.请在 答题卡制定区域内作答，解答时应写出文字说明、证明过程或演算步骤.） [来源:学*科*网]"}')
-    pdetect.detect('【答案】（1）{img:277}．（2）{img:278}.\n')
+    # pdetect.detect('一、选择题：{img:3}本大题共l0小题．每小题5分，共50分在每小题给出的四个选项中，只')
+    # pdetect.detect('二、解答题 （本大题共6小题，共90分.请在 答题卡制定区域内作答，解答时应写出文字说明、证明过程或演算步骤.） [来源:学*科*网]"}')
+    # pdetect.detect('【答案】（1）{img:277}．（2）{img:278}.\n')
     pdetect.detect('（18）【命题意图】本题考查导数的运 算，极值点的判断，导数符号与函数单调变化之间的关系.求解二次不等式，考查运算能力，综合运用知识分析和解决问题的能力')
     pdetect.detect('（17）【命题意图】本题考查直线与直线的位置关系，线线相交的判断与证明.点在曲线上的判断与证明.椭圆方程等基本知识.考查推理论证能力和运算求解能力')
+    pdetect.detect('答案D')
+    pdetect.detect('3填空题和解答题用0.5毫米黑色墨水箍字笔将答案直接答在答题卡上对应的答题区')
+    pdetect.detect('解析：设该数列{img:166}的首项为{img:167}，公差为{img:168}，依题意')
+    pdetect.detect('解析：从这30瓶饮料中任取2瓶，设至少取到1瓶已过了保质期饮料为事件A，从这30瓶饮料中任取2瓶，没有取到1瓶已过了保质期饮料为事件B，则A与B是对立事件，因为')
     with open(os.path.sep.join([args.data_root,'output', args.file_name]), 'r', encoding='utf-8') as f:
         lines = f.readlines()
 

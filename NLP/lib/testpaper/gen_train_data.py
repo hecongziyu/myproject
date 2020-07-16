@@ -44,6 +44,7 @@ def adjuest_paper_content(file_name, hcontents):
 
         # print('cur idx:', current_t_idx,'(', flag_sim ,'):', jratio, ': content ->', txtcnts[cidx], ': hcontents ->' , hitem)
 
+
         if flag_sim:
             _contents = combine_include_img_str(hitem,txtcnts[current_t_idx].replace('\n','').strip())
             current_t_idx = current_t_idx + 1
@@ -75,7 +76,7 @@ def gen_train_data_file(file_name):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="试卷导入功能")
     parser.add_argument("--config_file", default="bootstrap.yml", help="配置文件路径", type=str)
-    parser.add_argument("--file_name", default=u"2104年湖南长沙中考化学试卷.doc", help="配置文件路径", type=str)
+    parser.add_argument("--file_name", default=u"2016年秋季长沙市一中高一期中考试试卷--教师版.docx", help="配置文件路径", type=str)
     args = parser.parse_args()
     cfg.merge_from_file(args.config_file)    
     print(cfg.paper.ouput_path)
@@ -83,7 +84,7 @@ if __name__ == '__main__':
 
     # str1 = '{img:0}{img:3}当{img:5}时，{img:6}证明；{img:1}{img:2}'
     # str1 = '当{img:5}时，{img:6}{img:1}{img:2}'
-    # str1 = '当时，证明；'
+    # str2 = '当时，证明；'
     # str1 = '当时，{img:0}A{img:1} {img:2}'
     # str2 = '(1) 当时，证明；'
     # str2 = '(1) 当时'
@@ -96,6 +97,10 @@ if __name__ == '__main__':
     # str1 = '{img:21}，{img:22}又{img:23}'
     # str2 = '，又'
 
-    # result = combine_include_img_str(str1,str2)
+    # str1 = '（2）若{img:22}…{img:23}=1，则{img:24}…{img:28}{img:29}…{img:32}。'
+    # str2 = '（2）若…=1，则……。'
 
+    # str1 = '{img:11}或{img:0},{img:1},{img:2}'
+    # str2 = '或,,'
+    # result = combine_include_img_str(str1,str2)
     # print('%s -- %s --> %s' % (str1, str2, result))
