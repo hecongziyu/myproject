@@ -240,7 +240,8 @@ class TestPaperParse(object):
             if ltype == TAG_QUESTION:
 
                 result = self.__find_question_by_level__(question_level=qlevel, question_no=l_id, has_no_answer=True)
-
+                # ！！！！ 判断时可根据qid 检测问题当前级别，如超过第三级，则认为答案还没
+                # 有结束， 后期修改！！！！
 
                 # 检测是否是新题答案， 检测当前级别与检测的级别、或检测级别的当级级别是否相同
                 # 这里采用了简化的方式，选择不是第一级目录的问题
@@ -557,7 +558,7 @@ class TestPaperParse(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="试卷导入功能")
     parser.add_argument("--config_file", default="bootstrap.yml", help="配置文件路径", type=str)
-    parser.add_argument("--file_name", default=u"2016年秋季长沙市一中高一期中考试试卷--教师版.txt", help="配置文件路径", type=str)
+    parser.add_argument("--file_name", default=u"2011年普通高等学校招生全国统一考试数学卷（全国Ⅱ.理）含详解.txt", help="配置文件路径", type=str)
     parser.add_argument("--data_root", default="D:\\PROJECT_TW\\git\\data\\testpaper", help="配置文件路径", type=str)
     args = parser.parse_args()
     cfg.merge_from_file(args.config_file)    
@@ -604,6 +605,7 @@ if __name__ == '__main__':
     pdetect.detect('3填空题和解答题用0.5毫米黑色墨水箍字笔将答案直接答在答题卡上对应的答题区')
     pdetect.detect('解析：设该数列{img:166}的首项为{img:167}，公差为{img:168}，依题意')
     pdetect.detect('解析：从这30瓶饮料中任取2瓶，设至少取到1瓶已过了保质期饮料为事件A，从这30瓶饮料中任取2瓶，没有取到1瓶已过了保质期饮料为事件B，则A与B是对立事件，因为')
+    pdetect.detect('1．解：（1）如图所示，连接{img:541}')
     with open(os.path.sep.join([args.data_root,'output', args.file_name]), 'r', encoding='utf-8') as f:
         lines = f.readlines()
 

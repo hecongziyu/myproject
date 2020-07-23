@@ -123,7 +123,7 @@ def combine_include_img_str(img_str, sim_str):
 
     _pos_is_zero_len = len([x for x in img_pos_lists if x < no_img_pos_begin])
 
-    result = list(sim_str)
+    result = list(sim_str[sim_str.find(img_str_lists[0]):])
     for img_idx, img_pos in enumerate([x for x in img_pos_lists if x > no_img_pos_begin]):
         result.insert(img_pos, img_lists[img_idx+_pos_is_zero_len])
 
@@ -133,7 +133,10 @@ def combine_include_img_str(img_str, sim_str):
             result.insert(_first_sim_pos-1, img_lists[_pos_is_zero_len-idx-1])
         else:
             result.insert(0, img_lists[_pos_is_zero_len-idx-1])
-    return ''.join(result)
+
+    result = ''.join(sim_str[0:sim_str.find(img_str_lists[0])]) + ''.join(result)
+
+    return result
 
 def combine_include_img_str_backup(img_str, sim_str):
     result = []

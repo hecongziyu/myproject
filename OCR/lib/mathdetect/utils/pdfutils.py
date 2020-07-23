@@ -284,7 +284,7 @@ def gen_latex_img_pos(data_root, file_name,imgH=1200,image_dir='images',anno_dir
         pic_pos.append([x,y,x+w,y+h,1])
 
 
-    np.savetxt(os.path.sep.join([anno_dir, f'{file_name}.ppic']),np.array(pic_pos),'%.3f', ',', )
+    # np.savetxt(os.path.sep.join([anno_dir, f'{file_name}.ppic']),np.array(pic_pos),'%.3f', ',', )
 
 
     # PDF生成图片

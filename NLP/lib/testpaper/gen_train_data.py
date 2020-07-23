@@ -76,7 +76,7 @@ def gen_train_data_file(file_name):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="试卷导入功能")
     parser.add_argument("--config_file", default="bootstrap.yml", help="配置文件路径", type=str)
-    parser.add_argument("--file_name", default=u"2016年秋季长沙市一中高一期中考试试卷--教师版.docx", help="配置文件路径", type=str)
+    parser.add_argument("--file_name", default=u"2011年普通高等学校招生全国统一考试数学卷（全国Ⅱ.理）含详解.doc", help="配置文件路径", type=str)
     args = parser.parse_args()
     cfg.merge_from_file(args.config_file)    
     print(cfg.paper.ouput_path)
@@ -101,6 +101,6 @@ if __name__ == '__main__':
     # str2 = '（2）若…=1，则……。'
 
     # str1 = '{img:11}或{img:0},{img:1},{img:2}'
-    # str2 = '或,,'
+    # str2 = '（一）或,,'
     # result = combine_include_img_str(str1,str2)
     # print('%s -- %s --> %s' % (str1, str2, result))
