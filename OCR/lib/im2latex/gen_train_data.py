@@ -5,6 +5,7 @@ import argparse
 import numpy as np
 import random
 from tools import pdf_latex_utils as pdf
+from tools import latex_txt_utils as txt
 import cv2
 import lmdb
 import time
@@ -22,25 +23,25 @@ def write_error(data_root, err_lines):
 
 
 # 生成训练数据, 通过latex组成pdf
-'''
+''' https://latex.91maths.com/eg/czjxjh.html 常用的学校数学公式
     data root :     数据根目录
     formula file:   数学公式文本  
 '''
 def gen_train_data_by_pdf(data_root, formula_file, begin_pos=8750, key_idx=6586, size=100):
 
     outputPath = os.path.sep.join([data_root, 'lmdb'])
-    env = lmdb.open(outputPath, map_size=1500511627)
+    env = lmdb.open(outputPath, map_size=500511627)
 
-    with open(os.path.sep.join([data_root, formula_file]), 'r', encoding='utf-8') as f:
+    with open(os.path.sep.join([data_root,'data',formula_file]), 'r', encoding='utf-8') as f:
         formula_lines = f.readlines()
 
     # print('formula lines:', len(formula_lines))
     # 不支持数组方式，后期看怎么解决
-    formula_lines = [x.strip() for x in formula_lines if len(x.strip()) > 0]
+    formula_lines = [txt.latex_remove_space(x).strip() for x in formula_lines if len(x.strip()) > 0]
     key_idx = key_idx
 
 
-    batch_size = 6
+    batch_size = 5
     m_lines = []
     start_time = time.time()
 
@@ -53,11 +54,11 @@ def gen_train_data_by_pdf(data_root, formula_file, begin_pos=8750, key_idx=6586,
 
             try:
                 # 通过PDF生成数学公式图片
-                # print('m lines:', m_lines)
+                print('m lines:', m_lines)
                 pdf.gen_latex_pdf(data_root, 'temp', m_lines)        
                 # 得到PDF中公式图片位置信息
                 math_images = pdf.gen_latex_img_pos(data_root=data_root, file_name='temp',imgH=2048)         
-                # print('idx :', idx, ' math images len:', len(math_images))   
+                print('idx :', idx, ' math images len:', len(math_images))   
 
                 cache = {}
 
@@ -69,6 +70,7 @@ def gen_train_data_by_pdf(data_root, formula_file, begin_pos=8750, key_idx=6586,
 
                 writeCache(env,cache)
             except Exception as e:
+                print(e)
                 write_error(data_root, m_lines)
 
             m_lines = []
@@ -81,7 +83,7 @@ def gen_train_data_by_pdf(data_root, formula_file, begin_pos=8750, key_idx=6586,
 
 
 
-# 生成训练数据，采用下载的训练数据
+# 生成训练数据，采用下载的训练数据, 暂时不用。
 def gen_train_data_by_file(data_root):
     formula_file_name = os.path.sep.join([data_root, 'data', 'im2latex_formulas.norm.txt'])
     train_file_name = os.path.sep.join([data_root, 'data','im2latex_train_filter.txt'])
@@ -120,11 +122,14 @@ def get_image_data(image_file):
     return data
 
 
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='gen latex pos train data')
     parser.add_argument('--data_root', default='D:\\PROJECT_TW\\git\\data\\im2latex',help='data set root')
-    parser.add_argument('--formula_file', default='im2latex_formulas.norm_all.txt', type=str, help='数学公式文本')
+    parser.add_argument('--formula_file', default='im2latex_formulas_custom.txt', type=str, help='数学公式文本')
     parser.add_argument('--gen_size', default='5',type=int,help='gen size')    
     args = parser.parse_args()
-    gen_train_data_by_file(args.data_root)
+    # gen_train_data_by_file(args.data_root)
+    # gen_train_data_by_pdf(args.data_root,formula_file=args.formula_file, begin_pos=0,key_idx=0)

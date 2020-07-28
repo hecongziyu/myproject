@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 '''
 https://pymupdf.readthedocs.io/en/latest/
+https://www.jianshu.com/p/2bef8b44f40a 中文排版
 '''
 import fitz
 import numpy as np

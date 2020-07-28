@@ -5,7 +5,12 @@ import torch
 from torch.nn.utils import clip_grad_norm_
 
 from utils import cal_loss, cal_epsilon
+import logging
 
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+                    datefmt = '%Y-%m-%d  %H:%M:%S')
+logger = logging.getLogger("train")
 
 class Trainer(object):
     def __init__(self, optimizer, model, lr_scheduler,
@@ -27,27 +32,29 @@ class Trainer(object):
         self.device = torch.device("cuda" if use_cuda else "cpu")
 
     def train(self):
+        logger.info('begin train ...')
         mes = "Epoch {}, step:{}/{} {:.2f}%, Loss:{:.4f}, Perplexity:{:.4f}"
 
         while self.epoch <= self.last_epoch:
             self.model.train()
             losses = 0.0
-            batch_iterator = iter(self.train_loader)
-            for imgs, tgt4training, tgt4cal_loss in batch_iterator:
+            # batch_iterator = iter(self.train_loader)
+            for imgs, tgt4training, tgt4cal_loss in self.train_loader:
                 print('input imgs size :', imgs.size())
                 step_loss = self.train_step(imgs, tgt4training, tgt4cal_loss)
                 losses += step_loss
-
+                # self.step = self.step + 1
                 # log message
                 if self.step % self.args.print_freq == 0:
                     avg_loss = losses / self.args.print_freq
-                    print(mes.format(
+                    logger.info(mes.format(
                         self.epoch, self.step, len(self.train_loader),
-                        100 * self.step / len(self.train_loader),
+                        100 * self.step / len(self.train_loader) ,
                         avg_loss,
                         2**avg_loss
                     ))
                     losses = 0.0
+
 
             # one epoch Finished, calcute val loss
             val_loss = self.validate()
@@ -93,7 +100,7 @@ class Trainer(object):
                 loss = cal_loss(logits, tgt4cal_loss)
                 val_total_loss += loss
             avg_loss = val_total_loss / len(self.val_loader)
-            print(mes.format(
+            logger.info(mes.format(
                 self.epoch, avg_loss, 2**avg_loss
             ))
         if avg_loss < self.best_val_loss:
@@ -105,7 +112,7 @@ class Trainer(object):
         if not os.path.isdir(self.args.save_dir):
             os.makedirs(self.args.save_dir)
         save_path = join(self.args.save_dir, model_name+'.pt')
-        print("Saving checkpoint to {}".format(save_path))
+        logger.info("Saving checkpoint to {}".format(save_path))
 
         # torch.save(self.model, model_path)
 

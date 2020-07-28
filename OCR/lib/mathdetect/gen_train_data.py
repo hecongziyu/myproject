@@ -77,13 +77,6 @@ def gen_train_txt(data_root, img_dir, sub_dir):
     print(len(valid_data))
 
 
-# def test_gen_data(args):
-#     texts = ['让指定位置字符串中的任意位置显示不同的颜色大小','将转化为可变字符串，再根据指定字符查找该字符，再在该字符前面插入换行符']
-#     formuls = ['\\frac {a} {b} ', '\\sqrt {a},{b}']
-
-#     gen_latex_pdf(data_root='D:\\PROJECT_TW\\git\\data\\mathdetect', file_name='test', texts=texts, latexs=formuls)
-#     gen_latex_img_pos(data_root='D:\PROJECT_TW\git\data\mathdetect', file_name='test',imgH=1024)
-
 
 
 if __name__ == '__main__':
@@ -104,4 +97,6 @@ if __name__ == '__main__':
     # gen_train_special_data(data_root=args.data_root,image_dir='singleformula',type='m')
     # gen_train_special_data(data_root=args.data_root,image_dir='picture',type='p')
 
-    gen_train_txt(args.data_root, 'images', 'autogen')
+    # gen_train_txt(args.data_root, 'images', 'autogen')
+
+    # 暂时不用，采用tools/gen_data_from_paper.py， 生成训练数据

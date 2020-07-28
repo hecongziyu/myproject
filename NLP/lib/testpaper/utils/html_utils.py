@@ -5,7 +5,7 @@ import chardet
 # https://www.cnblogs.com/schut/p/10579955.html 检测文件编码
 
 class PaperHTMLParser(HTMLParser):
-    def __init__(self):
+    def __init__(self,include_img_attr=False):
         HTMLParser.__init__(self)
         self.data = []   # 定义data数组用来存储html中的数据
         self.paragraph = ''   # 段落
@@ -14,6 +14,7 @@ class PaperHTMLParser(HTMLParser):
         self.recording = 0
         self.start_num_map = {}
         self.ol_start_value = None
+        self.include_img_attr = include_img_attr
 
 
     def handle_starttag(self, tag, attrs):
@@ -73,13 +74,19 @@ class PaperHTMLParser(HTMLParser):
             return
         if self.recording > 0:
             src = None
+            width = None
+            height = None
             for name, value in attrs:
                 if name == 'src':
                     src = value
-                    break
+                elif name == 'width':
+                    width = value
+                elif name == 'height':
+                    height = value
+                    # break
             if src is not None:
                 self.image_seq = self.image_seq + 1
-                self.image_map[self.image_seq] = src
+                self.image_map[self.image_seq] = (src, width, height)
                 self.paragraph = self.paragraph + '{img:%s}' % self.image_seq
 
  

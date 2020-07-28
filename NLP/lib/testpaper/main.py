@@ -555,10 +555,30 @@ class TestPaperParse(object):
             self.adjust_question_answer_2(_question.qid)
 
 
+# 批处理生成， mathdetect需要该方法批处理生成模拟测试数据
+def batch_handle(data_dir='D:\\PROJECT_TW\\git\\data\\mathdetect\\source'):
+    pdetect = PaperDetect()
+    paper = TestPaperParse(pdetect)        
+    file_lists = os.listdir(os.path.sep.join([data_dir,'use']))
+    for idx, fitem in enumerate(file_lists):
+        print('正在处理：', fitem)
+        with open(os.path.sep.join([data_dir, 'use', fitem, '{}_out.txt'.format(fitem)]), 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        paper.paper_split_content(lines)
+        paper.adjust_question_answer_2()
+        # print('\n--------------------------------\n'.join([str(x) for x in paper.question_lists]))
+
+        paper_map = {'title': fitem,
+                     'question_list':[x.to_map() for x in paper.question_lists]}
+
+        with open(os.path.sep.join([data_dir, 'use', fitem, '{}_qs.json'.format(fitem)]), 'w', encoding='utf-8') as f:
+            f.write(json.dumps(paper_map,indent=4, ensure_ascii=False))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="试卷导入功能")
     parser.add_argument("--config_file", default="bootstrap.yml", help="配置文件路径", type=str)
-    parser.add_argument("--file_name", default=u"2011年普通高等学校招生全国统一考试数学卷（全国Ⅱ.理）含详解.txt", help="配置文件路径", type=str)
+    parser.add_argument("--file_name", default=u"1.txt", help="配置文件路径", type=str)
     parser.add_argument("--data_root", default="D:\\PROJECT_TW\\git\\data\\testpaper", help="配置文件路径", type=str)
     args = parser.parse_args()
     cfg.merge_from_file(args.config_file)    
@@ -606,22 +626,15 @@ if __name__ == '__main__':
     pdetect.detect('解析：设该数列{img:166}的首项为{img:167}，公差为{img:168}，依题意')
     pdetect.detect('解析：从这30瓶饮料中任取2瓶，设至少取到1瓶已过了保质期饮料为事件A，从这30瓶饮料中任取2瓶，没有取到1瓶已过了保质期饮料为事件B，则A与B是对立事件，因为')
     pdetect.detect('1．解：（1）如图所示，连接{img:541}')
-    with open(os.path.sep.join([args.data_root,'output', args.file_name]), 'r', encoding='utf-8') as f:
-        lines = f.readlines()
+    # with open(os.path.sep.join([args.data_root,'output', args.file_name]), 'r', encoding='utf-8') as f:
+    #     lines = f.readlines()
 
-    # print('lines:', lines)
-    paper.paper_split_content(lines)
+    # paper.paper_split_content(lines)
+    # paper.adjust_question_answer_2()
     # print('\n--------------------------------\n'.join([str(x) for x in paper.question_lists]))
 
-    # 
-    paper.adjust_question_answer_2()
-    print('\n--------------------------------\n'.join([str(x) for x in paper.question_lists]))
-
-
-    # qmaps = paper.check_question_no_continues(qlists)
-    # print(qmaps)
     
-
+    batch_handle()
 
 
 

@@ -22,7 +22,6 @@ matplotlib.use('TkAgg')
 
 
 
-
 def gen_latex_pdf(data_root, file_name, formulas, latex_box_color='red'):
     # print('准备数据')
     # doc_text_color = [r'$$ \colorbox{red} {$ %s $}  $$' % x for x in formulas]
@@ -37,9 +36,9 @@ def gen_latex_pdf(data_root, file_name, formulas, latex_box_color='red'):
 
 def gen_pdf(data_root, file_name, texts):
     
-    # print('texts:', texts)
+    print('texts:', texts)
     file_path = os.path.sep.join([data_root,'pdf', file_name])
-    # print('开始生成PDF文件, ', file_path)
+    print('开始生成PDF文件, ', file_path)
 
     if os.path.exists(file_path):
         os.remove('{}.pdf'.format(file_path))
@@ -48,6 +47,9 @@ def gen_pdf(data_root, file_name, texts):
     doc.packages.add(Package('ctex'))
     doc.packages.add(Package('color'))
     doc.packages.add(Package('empheq'))
+    # doc.packages.add(Package('textcomp'))
+    # doc.packages.add(Package('caption'),'format=hang,font=small,textfont=it')
+
 
     # 数学符号字体
     doc.packages.add(Package('amsmath'))
@@ -55,16 +57,16 @@ def gen_pdf(data_root, file_name, texts):
     doc.packages.add(Package('graphicx'))  
     doc.packages.add(Package('geometry'))  
     doc.packages.add(Package('tcolorbox','most'))
-
+    doc.packages.add(Package('caption','format=hang,font=small,textfont=it'))
     # doc.append(NoEscape(r'\usepackage[most]{tcolorbox}'))
-    doc.append(NoEscape(r'\newgeometry{left=3cm,bottom=1cm}'))
+    doc.append(NoEscape(r'\newgeometry{left=1cm,bottom=1cm}'))
     doc.append(NoEscape(r'\newtcbox{\mymath}[1][]{nobeforeafter, math upper, tcbox raise base,enhanced, boxrule=0pt,#1}'))
 
     for t in texts:
         # doc.append(NoEscape(r'~\\'))
         doc.append(NoEscape(t))
 
-    doc.generate_pdf(file_path,clean_tex=True,compiler='xelatex')
+    doc.generate_pdf(file_path,clean_tex=False,compiler='xelatex')
 
 
 
@@ -74,9 +76,9 @@ def gen_pdf(data_root, file_name, texts):
 def gen_latex_img_pos(data_root, file_name,imgH=1200,image_dir='images',anno_dir='annotations',sub_dir='autogen',latexs_box_color='red'):
     pdf_file_path = os.path.sep.join([data_root,'pdf',file_name])
 
-    anno_dir = os.path.sep.join([data_root,'data',anno_dir, sub_dir])
-    if not os.path.exists(anno_dir):
-        os.mkdir(anno_dir)
+    # anno_dir = os.path.sep.join([data_root,'data',anno_dir, sub_dir])
+    # if not os.path.exists(anno_dir):
+    #     os.mkdir(anno_dir)
 
 
     # 得到数学公式坐标位置
@@ -151,4 +153,3 @@ def pdf2image(pdf_datas, page_number=0, imgH=None):
         pix = page.getPixmap(matrix=mat,alpha=False)
     image_data = pix.getImageData()
     return image_data
-

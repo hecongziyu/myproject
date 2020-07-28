@@ -9,11 +9,11 @@ import re
 import numpy as np
 from utils.txt_utils import txt_ratio, combine_include_img_str
 
-def paper_doc_convert(file_name):
+def paper_doc_convert(file_name, embed_img=True):
     logger.info('开始处理 %s,  转换成TEXT' % os.path.sep.join([cfg.paper.data_root,file_name]))
     convert_docx_to_text(cfg.server.libreoffice, os.path.sep.join([cfg.paper.data_root,file_name]), cfg.paper.temp_path)
     logger.info('开始处理 %s,  转换成HTML' % os.path.sep.join([cfg.paper.data_root,file_name]))
-    convert_docx_to_html(cfg.server.libreoffice, os.path.sep.join([cfg.paper.data_root,file_name]), cfg.paper.temp_path)
+    convert_docx_to_html(cfg.server.libreoffice, os.path.sep.join([cfg.paper.data_root,file_name]), cfg.paper.temp_path, embed_img)
     logger.info('转换成HTML，开始解析试卷HTML内容')
     pcontent, pimage = parse_html_paper(os.path.sep.join([cfg.paper.temp_path, '%s.html' % file_name.rsplit('.',1)[0]]))
     logger.info('解析后的HTML内容：%s' % '\n'.join(pcontent))
@@ -28,8 +28,13 @@ def paper_doc_convert(file_name):
 
 # 整理HTML内容，与生成的txt文档进行比较，进行整合, 将相似度大的
 def adjuest_paper_content(file_name, hcontents):
-    with open(os.path.sep.join([cfg.paper.temp_path,'%s.txt' % file_name.rsplit('.',1)[0]]),'r', encoding='utf-8') as f:
-        txtcnts = f.readlines()
+    if file_name.find('.doc') != -1:
+        with open(os.path.sep.join([cfg.paper.temp_path,'%s.txt' % file_name.rsplit('.',1)[0]]),'r', encoding='utf-8') as f:
+            txtcnts = f.readlines()
+    else:
+        with open(file_name,'r', encoding='utf-8') as f:
+            txtcnts = f.readlines()
+
     a_contents = []
     current_t_idx = 0
     
@@ -65,8 +70,8 @@ def gen_train_data(data_dir):
             f.writelines([ '%s\n' % x for x in  content])
         logger.info('处理[ %s ] 完成' % item)  
 
-def gen_train_data_file(file_name):       
-    content, image = paper_doc_convert(file_name)
+def gen_train_data_file(file_name, embed_img=True):       
+    content, image = paper_doc_convert(file_name, embed_img)
     with open(os.path.sep.join([cfg.paper.ouput_path, '%s.txt' % file_name.rsplit('.',1)[0]]),'w', encoding='utf-8') as f:
         f.writelines([ '%s\n' % x for x in  content])
     with open(os.path.sep.join([cfg.paper.ouput_path, '%s_img.txt' % file_name.rsplit('.',1)[0]]),'w', encoding='utf-8') as f:
@@ -76,11 +81,12 @@ def gen_train_data_file(file_name):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="试卷导入功能")
     parser.add_argument("--config_file", default="bootstrap.yml", help="配置文件路径", type=str)
-    parser.add_argument("--file_name", default=u"2011年普通高等学校招生全国统一考试数学卷（全国Ⅱ.理）含详解.doc", help="配置文件路径", type=str)
+    parser.add_argument("--file_name", default=u"1.docx", help="配置文件路径", type=str)
+    parser.add_argument("--embed_img", action='store_true', default=False)
     args = parser.parse_args()
     cfg.merge_from_file(args.config_file)    
     print(cfg.paper.ouput_path)
-    gen_train_data_file(args.file_name)
+    gen_train_data_file(args.file_name, args.embed_img)
 
     # str1 = '{img:0}{img:3}当{img:5}时，{img:6}证明；{img:1}{img:2}'
     # str1 = '当{img:5}时，{img:6}{img:1}{img:2}'

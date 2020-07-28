@@ -9,9 +9,11 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from model import Im2LatexModel
 from training import Trainer
 from utils import get_checkpoint
-from latexdataset import LatexDataset,collate_fn,MEANS
-from latextransform import LatexImgTransform
+from latex_lmdb_dataset import lmdbDataset,collate_fn
+# from latextransform import LatexImgTransform
 from build_vocab import Vocab, load_vocab
+import numpy as np
+from torch.utils.data.sampler import SubsetRandomSampler
 
 
 def main():
@@ -65,7 +67,7 @@ def main():
                         help="The max gradient norm")
     parser.add_argument("--save_dir", type=str,
                         default="D:\\PROJECT_TW\\git\\data\\im2latex\\ckpts", help="The dir to save checkpoints")
-    parser.add_argument("--print_freq", type=int, default=100,
+    parser.add_argument("--print_freq", type=int, default=20,
                         help="The frequency to print message")
     parser.add_argument("--seed", type=int, default=2020,
                         help="The random seed for reproducing ")
@@ -96,32 +98,49 @@ def main():
 
     # data loader
     print("Construct data loader...")
+    dataset = lmdbDataset(root=args.dataset_root, split='train', max_len=args.max_len)
+    dataset_size = len(dataset)
+    indices = list(range(dataset_size))
+    val_train_split=0.1
+    valid_split = int(np.floor(val_train_split * dataset_size))
+    np.random.shuffle(indices)
+    train_indices, valid_indices = indices[valid_split:], indices[:valid_split]
+    train_sampler = SubsetRandomSampler(train_indices)
+    valid_sampler = SubsetRandomSampler(valid_indices)
 
-        # latex_ds = LatexDataset(args, data_file=args.data_file,split='test',
-        #                     transform=LatexImgTransform(size=300, mean=MEANS),
-        #                     target_transform=None,max_len=512)
-    train_loader = DataLoader(
-        LatexDataset(args, data_file=args.data_file,split='train', 
-                     transform=LatexImgTransform(imgH=args.image_height, mean=MEANS,data_root=args.dataset_root),
-                     max_len=args.max_len),
-                     shuffle=True,
-                     batch_size=args.batch_size,
-                     collate_fn=partial(collate_fn, vocab.sign2id),
-                     pin_memory=True if use_cuda else False,
-                     num_workers=4)
-    val_loader = DataLoader(
-        LatexDataset(args, data_file=args.data_file,split='valid', 
-                     transform=LatexImgTransform(imgH=args.image_height, mean=MEANS,data_root=args.dataset_root),
-                     max_len=args.max_len),
-                     shuffle=True,
-                     batch_size=args.batch_size,
-                     collate_fn=partial(collate_fn, vocab.sign2id),
-                     pin_memory=True if use_cuda else False,
-                     num_workers=4)
+    train_loader = DataLoader(dataset, shuffle=True, batch_size=args.batch_size,
+                            collate_fn=partial(collate_fn, vocab.sign2id),
+                            pin_memory=True if use_cuda else False)
+                            # sampler=train_sampler)
+
+    valid_loader = DataLoader(dataset, shuffle=True, batch_size=args.batch_size,
+                            collate_fn=partial(collate_fn, vocab.sign2id),
+                            pin_memory=True if use_cuda else False)
+                            # sampler=valid_sampler)
+
+    # train_loader = DataLoader(
+    #     LatexDataset(args, data_file=args.data_file,split='train', 
+    #                  transform=LatexImgTransform(imgH=args.image_height, mean=MEANS,data_root=args.dataset_root),
+    #                  max_len=args.max_len),
+    #                  shuffle=True,
+    #                  batch_size=args.batch_size,
+    #                  collate_fn=partial(collate_fn, vocab.sign2id),
+    #                  pin_memory=True if use_cuda else False,
+    #                  num_workers=4)
+    # val_loader = DataLoader(
+    #     LatexDataset(args, data_file=args.data_file,split='valid', 
+    #                  transform=LatexImgTransform(imgH=args.image_height, mean=MEANS,data_root=args.dataset_root),
+    #                  max_len=args.max_len),
+    #                  shuffle=True,
+    #                  batch_size=args.batch_size,
+    #                  collate_fn=partial(collate_fn, vocab.sign2id),
+    #                  pin_memory=True if use_cuda else False,
+    #                  num_workers=4)
 
     # construct model
     print("Construct model")
     vocab_size = len(vocab)
+    print('vocab size:', vocab_size)
     model = Im2LatexModel(
         vocab_size, args.emb_dim, args.dec_rnn_h,
         add_pos_feat=args.add_position_features,
@@ -149,12 +168,12 @@ def main():
         lr_scheduler.load_state_dict(checkpoint['lr_sche'])
         # init trainer from checkpoint
         trainer = Trainer(optimizer, model, lr_scheduler,
-                          train_loader, val_loader, args,
+                          train_loader, valid_loader, args,
                           use_cuda=use_cuda,
                           init_epoch=epoch, last_epoch=max_epoch)
     else:
         trainer = Trainer(optimizer, model, lr_scheduler,
-                          train_loader, val_loader, args,
+                          train_loader, valid_loader, args,
                           use_cuda=use_cuda,
                           init_epoch=1, last_epoch=args.epoches)
     # begin training
