@@ -113,8 +113,11 @@ class Im2LatexModel(nn.Module):
         for t in range(max_len):
             tgt = formulas[:, t:t+1]
             # schedule sampling
+            # print('begin tgt:', tgt)
             if logits and self.uniform.sample().item() > epsilon:
+                # print('logit :', logit, ' logit: ', logit.size)
                 tgt = torch.argmax(torch.log(logits[-1]), dim=1, keepdim=True)
+            # print('schedule tgt:', tgt, ' ')
             # ont step decoding
             dec_states, O_t, logit = self.step_decoding(dec_states, o_t, encoded_imgs, tgt)
             logits.append(logit)
@@ -123,11 +126,11 @@ class Im2LatexModel(nn.Module):
 
     def encode(self, imgs):
         encoded_imgs = self.cnn_encoder(imgs)  # [B, 512, H', W']
-        # print('crnn encoder encoded_imgs size :', encoded_imgs.size())
+        #print('crnn encoder encoded_imgs size :', encoded_imgs.size())
         encoded_imgs = encoded_imgs.permute(0, 2, 3, 1)  # [B, H', W', 512]
         B, H, W, _ = encoded_imgs.shape
         encoded_imgs = encoded_imgs.contiguous().view(B, H*W, -1)
-        # print('add pos feat:', self.add_pos_feat)
+        #print('add pos feat:', self.add_pos_feat)
         if self.add_pos_feat:
             encoded_imgs = add_positional_features(encoded_imgs)
         return encoded_imgs

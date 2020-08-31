@@ -9,11 +9,19 @@ import six
 import torch
 import os
 from build_vocab import PAD_TOKEN, UNK_TOKEN
+from tools.latex_txt_utils import latex_add_space
 
 
 
 '''
 https://palikar.github.io/posts/pytorch_datasplit/  切割数据
+https://blog.csdn.net/hao5335156/article/details/80593349?utm_source=blogxgwz7 关于图像 np.uint8 和np.float32的区别
+        # 原image 训练数据数据类型为np.uint8, 不能改成np.float32, 改成np.float32数据发生较大的变化
+        # 如array([[300., 400., 300., 300., 100.]]) 改成 np.uint8 变为  array([[ 44, 144,  44,  44, 100]], dtype=uint8)
+        # np.uint8 取值范围为 0, 255
+        # image = image.astype(np.float32)
+        # 注意当不做转换时, image transform 后数值为为 1, 当做image astype(np.float32)后，数据还是255.
+
 注意：需要将图片大小变成相同。
 处理方式一：
 1、过滤掉与第一个图片大小不相同的图片. (注意采用该方式时最好先将图片大小进行排序)
@@ -98,11 +106,15 @@ class lmdbDataset(Dataset):
 
 
     def __len__(self):
-        # return self.nSamples
-        return 100
-        # return 5
+        return self.nSamples * 5
+        # return 100
+        return 10
 
     def __getitem__(self, index):
+        # index = np.random.randint(self.nSamples)
+        print('get item :', index)
+        if index == 1800:
+            index = 1799
         assert index <= len(self), 'index range error'
         with self.env.begin(write=False) as txn:
             image, target = self.pull_train_item(txn, index)
@@ -118,11 +130,13 @@ class lmdbDataset(Dataset):
         return image
 
     def __get_target__(self, txn, target_key):
-        return str(txn.get(target_key.encode()).decode())        
+        return latex_add_space(str(txn.get(target_key.encode()).decode()))
 
     def pull_train_item(self, txn, index):
         image = self.__get_image__(txn, f'i_{index}')
         target = self.__get_target__(txn, f't_{index}')
+        if self.transform:
+            image = self.transform(image)
         return image, target
 
 
@@ -133,6 +147,7 @@ if __name__ == '__main__':
     from functools import partial
     import time
     from torch.utils.data.sampler import SubsetRandomSampler
+    from latex_lmdb_transform import ImgTransform
 
     parser = argparse.ArgumentParser(description='latex imdb dataset')
     parser.add_argument('--data_root',default='D:\\PROJECT_TW\\git\\data\\im2latex', type=str, help='path of the evaluated model')
@@ -153,69 +168,24 @@ if __name__ == '__main__':
 
     print('vocab:', len(vocab))
 
-    dataset = lmdbDataset(root=args.data_root, split='train', max_len=args.max_len)
+    # ImgTransform()
+    dataset = lmdbDataset(root=args.data_root, split='train', max_len=args.max_len, transform=ImgTransform())
 
     dataset_size = len(dataset)
 
-    # indices = list(range(dataset_size))
+    print('dataset size:', dataset_size)
 
-    # val_train_split=0.1
 
-    # valid_split = int(np.floor(val_train_split * dataset_size))
-
-    # if args.shuffle:
-    #     np.random.shuffle(indices)    
-
-    # train_indices, valid_indices = indices[valid_split:], indices[:valid_split]
-    # train_sampler = SubsetRandomSampler(train_indices)
-    # valid_sampler = SubsetRandomSampler(valid_indices)
-
-    # train_loader = DataLoader(dataset, shuffle=False, batch_size=args.batch_size,collate_fn=partial(collate_fn, vocab.sign2id), sampler=train_sampler)
-    # valid_loader = DataLoader(dataset, shuffle=False, batch_size=args.batch_size,collate_fn=partial(collate_fn, vocab.sign2id), sampler=valid_sampler)
-
-    # print('train loader:', len(train_loader))
-    # print('valid loader:', len(valid_loader))
-
-    random_sel = np.random.randint(0, len(dataset), 5).tolist()
-
+    random_sel = np.random.randint(len(dataset) - len(dataset) , 2100, 100).tolist()
     print('random_sel:', random_sel)
-
-    for idx in random_sel:
+    # random_sel = [] * 10
+    for ridx, idx in  enumerate(random_sel):
         image, target = dataset[idx]
-        image = image.astype(np.int)
+        image = image.astype(np.uint8)
+        print(idx , '--->', ' image shape:', image.shape)
+        cv2.imwrite(os.path.sep.join([args.data_root,'valid_img',f'{ridx}.png']),image)
         print('target:', target.strip())
-        plt.imshow(image)
-        plt.show()
+        # print('target:', [vocab.sign2id(x,3) for x in target.strip()])
+        # plt.imshow(image)
+        # plt.show()
 
-    # dataset = lmdbDataset(root=args.data_root, split='train')
-    # print(len(dataset))
-    # data_loader = DataLoader(
-    #                 lmdbDataset(root=args.data_root, split='train', max_len=args.max_len),
-    #                  # transform=LatexImgTransform(imgH=args.image_height, mean=MEANS,data_root=args.dataset_root),
-    #                  # max_len=args.max_len),
-    #                  shuffle=True,
-    #                  batch_size=args.batch_size,
-    #                  collate_fn=partial(collate_fn, vocab.sign2id),
-    #                  pin_memory=False,
-    #                  num_workers=0)
-
-    # print(len(data_loader))
-    # count = 0
-    # for epoch in range(5):
-    #     count = 0
-    #     start_time = time.time()
-    #     for imgs, tgt4training, tgt4cal_loss in train_loader:
-    #         # print('imgs size :', imgs.size())
-    #         # print('imgs:', imgs.size())
-    #         count = count + 1
-    #         if count == 1:
-    #             print('imgs size:', imgs.size())
-    #             print('tgt4training:', tgt4training)
-    #         if count % 1000 == 0:
-    #             pass
-    #             # print('imgs size:', imgs.size())
-    #             # print('tgt4training:', tgt4training)
-    #             # print('tgt4cal_loss:', tgt4cal_loss)
-
-
-    #     print('eooch:', epoch, ' load time:', (time.time() - start_time))

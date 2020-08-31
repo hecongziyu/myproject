@@ -293,7 +293,8 @@ if __name__ == '__main__':
 
     for index in range(5):
         im, gt, metadata = dataset[index]
-        print(index, ' ---> im shape:', im.shape)
+
+        print(index, ' ---> im shape:', im.shape, ' gt: ', gt)
         im = im.astype(np.int)
         height, width, depth = im.shape
         for box in gt:

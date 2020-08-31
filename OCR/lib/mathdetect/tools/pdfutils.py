@@ -55,10 +55,16 @@ def get_image_area(pdf_datas, page_number=0, page_height=None, begin_word='开�
     begin_word_pos = [[int(x[0] * zoom_x),int(x[1] * zoom_x),int(x[2] * zoom_x),int(x[3] * zoom_x)] for x in page_words if x[4] == begin_word][0]
     end_word_pos = [[int(x[0] * zoom_x),int(x[1] * zoom_x),int(x[2] * zoom_x),int(x[3] * zoom_x)] for x in page_words if x[4] == end_word]
 
+    # print('end word pos:', end_word_pos)
+
+    word_area_pos = [int(x[3]*zoom_x)  for x in page_words]
+    # print('word area pos:', word_area_pos)
+    word_area_pos = max(word_area_pos) if len(word_area_pos)>0 else -1
+    # print('word area pos:', word_area_pos)
     if len(end_word_pos) > 0:
-        image_area = [begin_word_pos[3],end_word_pos[0][1]]    
+        image_area = [begin_word_pos[0], begin_word_pos[3],end_word_pos[0][2] + 10, end_word_pos[0][1]]    
     else:
-        image_area = [begin_word_pos[3],-1]    
+        image_area = [begin_word_pos[0], begin_word_pos[3],-1, -1]    
 
     # print('begin word pos :', begin_word_pos)    
     # print('end word pos :', end_word_pos)    
@@ -86,14 +92,21 @@ def gen_latex_img_pos(data_root, imgH=1024,image_dir='images',anno_dir='annotati
     # 得到图片的范围，区间“开始”， “结束”
     image_area = get_image_area(data_color,page_height=imgH)
     # print('image area:', image_area)
-    y0,y1 = image_area
+    x0,y0,x1,y1 = image_area
 
     image = pdf2image(data_color, imgH=imgH)
     image = cv2.imdecode(np.frombuffer(image, np.uint8),cv2.IMREAD_COLOR)
+    # 注意 y1 , x1 为 -1 ,表明其中没有数据，是空白页
+    x0 = 30
     if y1 == -1:
-        y1 = image.shape[0]
+        y1 = image.shape[1]/2
 
-    image = image[y0:y1, 0:image.shape[1]-50]
+    if x1 == -1:
+        x1 = image.shape[0]/2
+
+    image = image[y0:y1, x0:x1]
+
+    # print('image shape: ', image.shape)
 
 
     boundaries = [[0, 0, 255], [0, 0, 255]] # 红色
@@ -150,7 +163,7 @@ def gen_latex_img_pos(data_root, imgH=1024,image_dir='images',anno_dir='annotati
         data = f.read()
     image = pdf2image(data, imgH=imgH)
     image = cv2.imdecode(np.frombuffer(image, np.uint8),cv2.IMREAD_COLOR)
-    image = image[y0:y1, 0:image.shape[1]-50]
+    image = image[y0:y1, x0:min(x1+20, image.shape[1])]
 
     # for _pos in formula_pos:
     #     x0,y0,x1,y1,_ = _pos

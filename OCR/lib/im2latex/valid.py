@@ -2,7 +2,9 @@ import argparse
 from build_vocab import Vocab, load_vocab
 import torch
 from decoding import LatexProducer
-from latextransform import GenResize,ConvertFromInts,BackGround,ExpandWidth
+# from latextransform import GenResize,ConvertFromInts,BackGround,ExpandWidth
+from latex_lmdb_dataset import lmdbDataset,collate_fn
+from latex_lmdb_transform import ImgTransform
 from model import Im2LatexModel
 import cv2
 from torchvision import transforms
@@ -83,6 +85,28 @@ def batch_valid(latex_producer,vocab,args):
         except RuntimeError:
             break
 
+def batch_valid_2(latex_producer, vocab, args):
+    dataset = lmdbDataset(root=args.dataset_root, split='train', max_len=args.max_len, transform=ImgTransform())
+    print('len data set ', len(dataset))
+    valid_loader = DataLoader(dataset, shuffle=True, batch_size=1,
+                            collate_fn=partial(collate_fn, vocab.sign2id),
+                            pin_memory=True if use_cuda else False)
+
+    start = time.time()
+    for imgs, _, tgt4cal_loss in valid_loader:
+        try:
+            print(' load data time :',  (time.time() - start ), ' imgs size :', imgs.size())
+            start = time.time()
+            reference = latex_producer._idx2formulas(tgt4cal_loss)
+            print('reference :', reference)
+            results = latex_producer(imgs)
+            print('predict  time :',  (time.time() - start ))
+            # start = time.time()
+            print('results:', results)
+            # print('tgt4cal_loss:', reference)
+            break
+        except RuntimeError:
+            break
 
 
 if __name__ == '__main__':
@@ -90,7 +114,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_path',default='D:\\PROJECT_TW\\git\\data\\im2latex\\ckpts\\best_ckpt.pt', type=str, help='path of the evaluated model')
     parser.add_argument('--image_file',default='5.png', type=str, help='path of the evaluated model')
     parser.add_argument('--dataset_root',default='D:\\PROJECT_TW\\git\\data\\im2latex', type=str, help='path of the evaluated model')
-    parser.add_argument("--max_len", type=int, default=150, help="Max step of decoding")    
+    parser.add_argument("--max_len", type=int, default=50, help="Max step of decoding")    
     parser.add_argument("--beam_size", type=int, default=1)
     parser.add_argument("--batch_size", type=int, default=5)
     parser.add_argument("--seed", type=int, default=2020,help="The random seed for reproducing ")
@@ -111,11 +135,13 @@ if __name__ == '__main__':
         model, vocab, max_len=args.max_len,
         use_cuda=use_cuda, beam_size=args.beam_size)    
 
+    batch_valid_2(latex_producer, vocab, args)
+
     # batch_valid(latex_producer, vocab, args)
 
-    formula = valid(latex_producer, os.path.sep.join([args.dataset_root,'gen_images',args.image_file]), args.dataset_root)
+    # formula = valid(latex_producer, os.path.sep.join([args.dataset_root,'gen_images',args.image_file]), args.dataset_root)
     # batch_valid(latex_producer, vocab, args)
-    print('formula:', formula)
+    # print('formula:', formula)
 
 
 

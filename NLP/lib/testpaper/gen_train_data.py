@@ -81,7 +81,7 @@ def gen_train_data_file(file_name, embed_img=True):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="试卷导入功能")
     parser.add_argument("--config_file", default="bootstrap.yml", help="配置文件路径", type=str)
-    parser.add_argument("--file_name", default=u"1.docx", help="配置文件路径", type=str)
+    parser.add_argument("--file_name", default=u"陕西省2014年中考化学试题（word版，含解析）.doc", help="配置文件路径", type=str)
     parser.add_argument("--embed_img", action='store_true', default=False)
     args = parser.parse_args()
     cfg.merge_from_file(args.config_file)    

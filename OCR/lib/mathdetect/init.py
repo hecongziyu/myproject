@@ -14,7 +14,7 @@ def init_args(params=None):
                         type=str, help='data root path')
     parser.add_argument('--dataset', default='GTDB', choices=['GTDB'],
                         type=str, help='choose GTDB')
-    parser.add_argument('--dataset_root', default='D:\\PROJECT_TW\\git\\data\\mathdetect\\data',
+    parser.add_argument('--dataset_root', default='D:\\PROJECT_TW\\git\\data\\mathdetect\\source',
                         help='Dataset root directory path')
     parser.add_argument('--basenet', default='vgg16_reducedfc.pth',
                         help='Pretrained base model')
@@ -85,6 +85,8 @@ def init_args(params=None):
                         help='Stride to use for sliding window')
     parser.add_argument('--window', default=1200, type=int,
                         help='Sliding window size')
+    parser.add_argument('--detect_type', default='formula', type=str,help='pic or formula')
+
     parser.add_argument('--pos_thresh', default=0.5, type=float,
                         help='All default boxes with iou>pos_thresh are considered as positive examples')
 
