@@ -11,6 +11,7 @@ from qr_lmdb_transform import QRTestTransform
 from matplotlib import pyplot as plt
 from torchvision import transforms
 import matplotlib
+import time
 matplotlib.use('TkAgg')
 transform = transforms.ToTensor()
 
@@ -37,51 +38,6 @@ def get_model(args, model_path):
 
     return net
 
-
-    # mean = (246,246,246)
-    # window = 1200
-    # stride = 0.01
-    # stepx = 200
-    # stepy = 400
-    # # size = 512
-    # size = 300
-    # image_path = 'D:\\1044.png'
-    # image = cv2.imread(image_path, cv2.IMREAD_COLOR) 
-    # print('image shape:', image.shape)
-    # cropped_image = np.full((1200, 1200, image.shape[2]), 255)
-    # if image.shape[0] > window:
-    #     cropped_image[0:window, 0:window, :] = image[yl:yl+window, xl:xl+window, :]
-    # else:
-    #     cropped_image[0:image.shape[0], 0:image.shape[1],:] = image
-    # img = cropped_image.astype(np.float32)
-    # img = cv2.resize(img, (size,size), interpolation=cv2.INTER_AREA)
-    # transform = transforms.ToTensor()
-    # img = transform(img)
-    # img = img.unsqueeze_(0)
-    # if args.cuda:
-    #     img = img.cuda()
-    # print(img.size())
-    # y, debug_boxes, debug_scores = net(img)
-
-
-    # detections = y.data
-
-    # print(detections.size())
-    # k = 0
-    # i = 1
-    # j = 0
-    # recognized_boxes = []
-    # recognized_scores = []
-    # while j < detections.size(1) and detections[k, i, j, 0] >= 0.45:
-    #     score = detections[k, i, j, 0]
-    #     print('score :', score)
-    #     pt = (detections[k, i, j, 1:] * args.window).cpu().numpy()
-    #     coords = (int(pt[0]), int(pt[1]), int(pt[2]), int(pt[3]))
-    #     recognized_boxes.append(coords)
-    #     recognized_scores.append(score.cpu().numpy())
-    #     j += 1
-
-    # print(recognized_boxes)
 
 
 def __get_image__(txn, image_key):
@@ -148,8 +104,6 @@ def test_lmdb_images(args, model):
 
     print('image shape :', image.shape)
 
-    
-
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)  
     image = image.astype(np.float32)  
@@ -159,16 +113,78 @@ def test_lmdb_images(args, model):
 
     print('image size :', image.size())
 
+    start_time = time.time()
+
     boxes = __get_image_boxes__(model, image)
 
     print('boxes :', boxes)
 
+    print('use time :', (time.time() - start_time))
     for box in boxes:
         x0,y0,x1,y1 = box
         cv2.rectangle(src_image, (x0,y0), (x1, y1), (0, 255, 0), 2)    
 
     plt.imshow(src_image)
     plt.show()    
+
+
+def test_file_images(args, model, file_name):
+    # image = cv2.imread(join(args.root_path, 'images','temp','temporary', file_name), cv2.IMREAD_COLOR)
+    image = cv2.imread(join(args.root_path, 'images','real','source', file_name), cv2.IMREAD_COLOR)
+    # print('origin image shape :', image.shape)
+    height, width , _ = image.shape
+    radio = 2048/height
+    image = cv2.resize(image.copy(), (0,0), fx=radio, fy=radio, interpolation=cv2.INTER_AREA)
+    image = __adjust_size__(image)
+    src_image = image.copy()
+
+    image = __mask_window__(image)
+
+    image = cv2.resize(image.copy(), (300,300), interpolation=cv2.INTER_AREA)
+
+    # print('image shape :', image.shape)
+
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)  
+    image = image.astype(np.float32)  
+
+    image = transform(image)
+    image = image.unsqueeze(0)
+
+    # print('image size :', image.size())
+
+    start_time = time.time()
+
+    boxes = __get_image_boxes__(model, image)
+
+    # print('boxes :', boxes)
+
+    print('use time :', (time.time() - start_time))
+    for box in boxes:
+        x0,y0,x1,y1 = box
+        cv2.rectangle(src_image, (x0,y0), (x1, y1), (0, 255, 0), 2)    
+
+    # plt.imshow(src_image)
+    # plt.show()    
+
+    cv2.imwrite(join(args.root_path, 'valid_result_imgs', file_name), src_image)
+
+
+def test_batch_image(args, model):
+    # file_lists = os.listdir(join(args.root_path, 'images','temp','temporary'))
+    file_lists = os.listdir(join(args.root_path, 'error_imgs','error'))
+    # print('file lists ', file_lists)
+    file_lists = [x for x in file_lists if x.find('.jpg') != -1]
+    print(len(file_lists))
+
+    for fitem in file_lists:
+        try:
+            print('detect file :', fitem)
+            test_file_images(args, model,fitem)        
+
+        except Exception as e:
+            print('file error :', e)
+
 
 
 if __name__ == '__main__':
@@ -179,9 +195,6 @@ if __name__ == '__main__':
     start = time.time()
     try:
         filepath=os.path.join(args.log_dir, args.exp_name + "_" + str(round(time.time())) + ".log")
-        # logging.basicConfig(filename=filepath,
-        #                     filemode='w', format='%(process)d - %(asctime)s - %(message)s',
-        #                     datefmt='%d-%b-%y %H:%M:%S', level=logging.DEBUG)
         logging.basicConfig(format='%(process)d - %(asctime)s - %(message)s',
                             datefmt='%d-%b-%y %H:%M:%S', level=logging.DEBUG)        
 
@@ -189,8 +202,13 @@ if __name__ == '__main__':
         model = get_model(args, model_path)
         model.eval()
 
-        test_lmdb_images(args, model)
+        # test_lmdb_images(args, model)
 
+        file_name = '0faff3a5-c5dc-4e52-8933-c9b6f9db0a4a.jpg'
+
+        # test_file_images(args, model, file_name)
+
+        test_batch_image(args, model)
 
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)

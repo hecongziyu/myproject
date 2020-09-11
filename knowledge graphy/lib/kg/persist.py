@@ -1,5 +1,4 @@
 from py2neo import Graph
-from .init import cfg
 
 
 
@@ -21,10 +20,11 @@ class KnowledgeEntity:
 
     def get_all_entity(self):
         query = 'MATCH (n:Knowledge) RETURN n'
-        result = graph.run(query).data()
-        if len(result) == 0:
+        q_result = self.graph.run(query).data()
+        if len(q_result) == 0:
             return None
-        return result[0]['n'].get('name')
+        result = [x['n'].get('name') for x in q_result]
+        return result
 
 
 

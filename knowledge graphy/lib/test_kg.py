@@ -1,7 +1,7 @@
 from kg.persist import KnowledgeEntity
 
 def test_get_all_entity(kge):
-    result = get_all_entity()
+    result = kge.get_all_entity()
     print(result)
 
 

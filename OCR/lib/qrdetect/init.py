@@ -107,7 +107,7 @@ def init_args(params=None):
     else:
         torch.set_default_tensor_type('torch.FloatTensor')
 
-    if not os.path.exists("weights_" + args.exp_name):
-        os.mkdir("weights_" + args.exp_name)
+    # if not os.path.exists("weights_" + args.exp_name):
+    #     os.mkdir("weights_" + args.exp_name)
 
     return args

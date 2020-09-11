@@ -1,19 +1,27 @@
 from entity.ner.entity_ner import NERecognition
 from entity.alignment.entity_align import EntityAlignment
+from kg.persist import KnowledgeEntity
+from test_crawer import test_baidubaike_parser
 
-
+# 实体抽取
 def test_ner(dict_file, text):
+    '''
+    实体抽取实现本次采用分词方式，后续可进行修改，修改成深度学习模式
+    处理流程：
+    1、对text文本进行分词， 取出分词后为n的词组
+    2、检测词组是否为所需的词组，（本地查找 --》 baibu baike --》save local file)
+    
+    '''
     ner = NERecognition(dict_file=dict_file,seg_name='synonyms')
     tokens = ner.get_entity(text)
-    # 取得命名实体
+    
     m_tokens = list(zip(tokens[0], tokens[1]))
 
-    # 与知识图谱实体进行实体链接、对齐, 注意只对名词
     print('tokens:', m_tokens)
     return m_tokens
 
 
-# 实体与知识图谱进行对齐测试
+# 与知识图谱实体进行实体链接、对齐, 注意只对名词
 def test_aligment(dict_file, text, entity_file):
     align = EntityAlignment()
     tokens = test_ner(dict_file, text)
@@ -42,9 +50,12 @@ def test_add_entity(tokens):
     # 1、分词，标明词性， tokens: [('平行', 'n'), ('四边形', 'n'), ('叫做', 'v')]
 
     # 2、实体与图谱实体进行链接
+    kge = KnowledgeEntity()
+    kg_entity_lists = kge.get_all_entity()  # 从知识图谱得到所有的实体信息，后期需修改成文件方式
     align = EntityAlignment()  # 实体链接类
     n_tokens = [x[0] for x in tokens if x[1] == 'n']
-    tok_link_entity = [(x, align.similar(x)) for x in n_tokens]
+    tok_link_entity = [(x, align.similar(text1=x,text2_lists=kg_entity_lists)) for x in n_tokens]
+    print('tok link entity :', tok_link_entity)
 
 
     
@@ -61,15 +72,22 @@ def test_extract_relation(tokens, e_rel_type='cooperate'):
 
 
 
+
+
 if __name__ == '__main__':
     import argparse
+    
     args = argparse.ArgumentParser(description="总体分析")
     args.add_argument("--dict_file", help="字典目录",default='D:\\PROJECT_TW\\git\\data\\finance\\dict.txt',type=str, required=False)
+    args.add_argument("--data_dir", help="目录",default=r'D:\PROJECT_TW\git\data\kg\crawer',type=str, required=False)
     args = args.parse_args()
-    text = '两组对边分别平行的四边形叫做平行四边形。1、平行四边形属于平面图形。2、平行四边形属于四边形。3、平行四边形属于中心对称图形。'
+
+    title = '平行四边形'
+    text = test_baidubaike_parser(args.data_dir, title)
+
+
 
     # test_ner(args.dict_file, text=text)
 
     tokens = test_ner(dict_file=args.dict_file, text=text)
-
-
+    # test_add_entity(tokens)

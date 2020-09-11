@@ -8,6 +8,8 @@ from torch.utils.data import DataLoader
 import six
 import torch
 import os
+from xml.dom.minidom import parse
+import logging
 
 class AnnotationTransform(object):
     """Transforms a GTDB annotation into a Tensor of bbox coords and label index
@@ -36,6 +38,12 @@ class AnnotationTransform(object):
 
 
 class QRDataset(Dataset):
+    '''
+    试卷定点识别， 训练数据来源
+    1）初始化导入的训练数据，保存在lmdb数据库存中
+    2）识别错误的数据， 保存在文件中
+    训练时需两部分数据结合一起进行训练
+    '''
     def __init__(self, data_dir, window=1200,transform=None, target_transform=None):
         Dataset.__init__(self)
         self.env = lmdb.open(
@@ -48,6 +56,7 @@ class QRDataset(Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.window=window
+        self.data_dir = data_dir
         if not self.env:
             print('cannot creat lmdb from %s' % (root))
             sys.exit(0)
@@ -58,15 +67,49 @@ class QRDataset(Dataset):
             self.nSamples = nSamples   
             self.qrNsamples = qrNsamples
 
+        self.ext_train_data = self.__load_file_data__()
+        logging.info('lmdb data len : %s  file data len : %s' % (self.nSamples, len(self.ext_train_data)))
 
+    def __load_file_data__(self):
+        '''
+        加载识别错误图片重新进入训练
+        '''
+        file_lists = os.listdir(join(self.data_dir, 'error_imgs', 'taged'))
+        file_lists = [x for x in file_lists if x.find('.xml') != -1]
+
+        train_data = []
+
+        for item in file_lists:
+            domtree = parse(join(self.data_dir,'error_imgs', 'taged',item))
+            imgdom = domtree.documentElement
+            img_name = imgdom.getElementsByTagName('filename')[0].firstChild.nodeValue
+            image = cv2.imread(join(self.data_dir,'error_imgs', 'taged', img_name), cv2.IMREAD_COLOR)
+            height, width, _ = image.shape
+            radio = 2048/height
+
+            image = cv2.resize(image, (0,0), fx=radio, fy=radio, interpolation=cv2.INTER_AREA)
+
+            # image = image.astype(np.uint8)
+            box_lists = []
+            box_nodes = imgdom.getElementsByTagName('bndbox')
+            for box in box_nodes:
+                xmin = int(int(box.getElementsByTagName('xmin')[0].firstChild.nodeValue) * radio)
+                ymin = int(int(box.getElementsByTagName('ymin')[0].firstChild.nodeValue) * radio)
+                xmax = int(int(box.getElementsByTagName('xmax')[0].firstChild.nodeValue) * radio)
+                ymax = int(int(box.getElementsByTagName('ymax')[0].firstChild.nodeValue) * radio)
+                box_lists.append([xmin, ymin, xmax, ymax, 0])
+
+            train_data.append((image, np.array(box_lists)))
+        return train_data
 
     def __len__(self):
-        return self.nSamples * 50
+        # return self.nSamples * 50
+        return self.nSamples + len(self.ext_train_data)
 
     def __getitem__(self, index):
 
-        index = np.random.randint(self.nSamples)
-        # print("random index :", index)
+        # rand_area = [x for x in range(self.nSamples + len(self.ext_train_data)) if x not in [907,148,493,505,679,689,784,813,865]]
+        # index = rand_area[np.random.randint(len(rand_area))]
 
         with self.env.begin(write=False) as txn:
            qrImage, image, target = self.pull_train_item(txn, index)
@@ -112,9 +155,14 @@ class QRDataset(Dataset):
 
 
     def pull_train_item(self, txn, index):
-        image = self.__get_image__(txn, f'bg_{index}')
-        target = self.__get_target__(txn, f'target_{index}')
-        qr_idx = np.random.randint(0, self.qrNsamples)
+        if index < self.nSamples:
+            image = self.__get_image__(txn, f'bg_{index}')
+            target = self.__get_target__(txn, f'target_{index}')
+        else:
+            logging.info('index %s load data from ext train data .')
+            image, target = self.ext_train_data[index - self.nSamples]
+        # qr_idx = np.random.randint(0, self.qrNsamples)
+        qr_idx = 0
         qrImage = self.__get_image__(txn, f'qr_{qr_idx}')
 
         return qrImage,image, target
@@ -126,6 +174,7 @@ if __name__ == '__main__':
     from torch.utils.data.sampler import SubsetRandomSampler
     from torchvision import transforms
     from qr_lmdb_transform import QRTransform
+    from os.path import join
     parser = argparse.ArgumentParser(description='math formula imdb dataset')
     parser.add_argument('--data_root',default='D:\\PROJECT_TW\\git\\data\\qrdetect', type=str, help='path of the math formula data')
     parser.add_argument('--batch_size',default=16, type=int)
@@ -137,9 +186,10 @@ if __name__ == '__main__':
                         window=1200, transform=QRTransform(), target_transform=AnnotationTransform())    
 
     print('data set len :', len(dataset))
-    random_sel = np.random.randint(0, len(dataset), 5).tolist()
+    random_sel = np.random.randint(0, len(dataset), 100).tolist()
 
-    for idx in random_sel:
+    # len(dataset)-50,
+    for ridx, idx in enumerate(range(len(dataset))):
         image, boxes = dataset[idx]
         image = image.astype(np.uint8)
         image = cv2.resize(image, (1200,1200), interpolation=cv2.INTER_AREA)
@@ -148,12 +198,14 @@ if __name__ == '__main__':
         image = image.astype(np.uint8)
         for box in boxes:
             x0, y0, x1, y1, label= box
-            x0 = int(1200*x0)
-            x1 = int(1200*x1)
-            y0 = int(1200*y0)
-            y1 = int(1200*y1)        
+            x0 = int(1200*x0) - 5
+            x1 = int(1200*x1) + 5 
+            y0 = int(1200*y0) - 5
+            y1 = int(1200*y1) + 5    
             if int(label) == 0:
                 cv2.rectangle(image, (x0,y0), (x1, y1), (0, 255, 0), 2)
 
-        plt.imshow(image)
-        plt.show()        
+        cv2.imwrite(join(args.data_root,'valid_imgs', f'{ridx}_.png'), image)
+
+        # plt.imshow(image)
+        # plt.show()        

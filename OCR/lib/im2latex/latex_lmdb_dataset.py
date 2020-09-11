@@ -108,10 +108,10 @@ class lmdbDataset(Dataset):
     def __len__(self):
         return self.nSamples * 5
         # return 100
-        return 10
+        # return 10
 
     def __getitem__(self, index):
-        # index = np.random.randint(self.nSamples)
+        index = np.random.randint(self.nSamples)
         print('get item :', index)
         if index == 1800:
             index = 1799
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     print('dataset size:', dataset_size)
 
 
-    random_sel = np.random.randint(len(dataset) - len(dataset) , 2100, 100).tolist()
+    random_sel = np.random.randint(0 , len(dataset), 300).tolist()
     print('random_sel:', random_sel)
     # random_sel = [] * 10
     for ridx, idx in  enumerate(random_sel):

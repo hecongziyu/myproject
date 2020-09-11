@@ -97,6 +97,7 @@ class GTDBDetection(data.Dataset):
 
     def __init__(self, args, data_file, split='train',
                  transform=None, target_transform=None,
+                 max_char_len=4,
                  dataset_name='GTDB'):
 
         #split can be train, validate or test
@@ -113,6 +114,7 @@ class GTDBDetection(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.window = args.window
+        self.max_char_len = max_char_len
 
         if not self.env:
             print('cannot creat lmdb from %s' % (root))
@@ -168,6 +170,8 @@ class GTDBDetection(data.Dataset):
     def pull_train_item(self,txn,index):
         label_key = f'train_{index}'
         label = str(txn.get(label_key.encode()).decode())
+        label = ''.join(list(label)[0:self.max_char_len])
+        # print('pull train label :', label)
         random_select = np.random.randint(5)
         if random_select < 2:
             images, boxes, bg_img = self.__get_origin_image_label__(txn, index, label)
@@ -235,6 +239,7 @@ class GTDBDetection(data.Dataset):
         boxes = []
         bg_img = None
 
+
         for item in list(label)[0]:
             label_image_key = 'Sample{}_num_samples'.format(item.upper())
             label_image_number = self.__get_image_num__(txn, label_image_key)
@@ -244,6 +249,7 @@ class GTDBDetection(data.Dataset):
             char_file_name, char_img, char_pos = self.__get_char_img__(txn,char_pos_key)
             images.append(char_img)
             boxes.append(char_pos)
+
 
         return images, boxes, bg_img
 
@@ -277,10 +283,10 @@ class GTDBDetection(data.Dataset):
         images = None
         boxes = None
 
-        if np.random.randint(2):
-            images = clip_img_lists
-        else:
-            images = clip_img_bit_lists
+        # if np.random.randint(2):
+        # images = clip_img_lists
+        # else:
+        images = clip_img_bit_lists
 
         boxes = [[0,0,x[0].shape[1], x[0].shape[0]] for x in images]
 
@@ -304,7 +310,7 @@ if __name__ == '__main__':
     # args = parser.parse_args()
     args = init_args()
     print('args:', args)
-    tmp_path = 'D:\\PROJECT_TW\\git\\data\\tmp'
+    tmp_path = 'D:\\PROJECT_TW\\git\\data\\ocr\\valid_images'
     
     if os.path.exists(tmp_path):
         shutil.rmtree(tmp_path)
@@ -319,8 +325,9 @@ if __name__ == '__main__':
                             target_transform = GTDBAnnotationTransform()
                             )    
 
+    print('data set len :', len(dataset))
 
-    for index in range(2000):
+    for index in range(100):
         if index % 100 == 0:
             print('handle {} image '.format(index))
         im, boxes = dataset[index]

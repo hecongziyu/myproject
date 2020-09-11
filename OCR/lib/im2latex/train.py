@@ -47,7 +47,7 @@ def main():
     parser.add_argument("--cuda", action='store_true',default=True, help="Use cuda or not")
     parser.add_argument("--batch_size", type=int, default=5)
     parser.add_argument("--epoches", type=int, default=5000)
-    parser.add_argument("--lr", type=float, default=3e-4,
+    parser.add_argument("--lr", type=float, default=1e-4,
                         help="Learning Rate")
     parser.add_argument("--min_lr", type=float, default=3e-5,
                         help="Learning Rate")

@@ -52,8 +52,8 @@ class ConvertFromInts(object):
     def __call__(self, image, boxes=None, bg_img=None):
         image = image.astype(np.uint8)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # print('image shape:', image.shape)
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-
         return image.astype(np.float32), boxes, bg_img
 
 class SubtractMeans(object):
@@ -93,7 +93,7 @@ class ToPercentCoords(object):
 
 
 class ExpandBackGround(object):
-    def __init__(self, min_width=120, min_height=32, max_width_radio=1.3, max_height_radio=1.3):
+    def __init__(self, min_width=60, min_height=32, max_width_radio=1.3, max_height_radio=1.3):
         self.min_width = min_width
         self.min_height = min_height
         self.max_height_radio = max_height_radio
@@ -178,7 +178,7 @@ class Resize(object):
         return image, boxes, bg_img
 
 class RandomSize(object):
-    def __init__(self, min_radio=0.9, max_radio=1.1):
+    def __init__(self, min_radio=0.9, max_radio=1.5):
         self.min_radio = min_radio
         self.max_radio = max_radio
 
@@ -211,42 +211,30 @@ class MixBackgroundColor(object):
             image, img_type = item
             if img_type == 0:
                 # 字符截图，没有做二值化图片
-                mix_image_lists.append(self.__normal_mix__(image,bg_image,min_alpha=0.5))
+                mix_image_lists.append(self.__normal_mix__(image,bg_image))
             elif img_type == 1:
                 # 字符截图，已做二值化处理图片
-                _image = np.ones(image.shape, image.dtype) * 255
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-                y, x = np.where(image != 0)
-                _image[y,x,:] = 0
-                # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-                mix_image_lists.append(self.__normal_mix__(_image,bg_image,min_alpha=0.3))
-                # mix_image_lists.append(self.__custom_mix__(image,bg_image, alpha_color))
+                mix_image_lists.append(self.__custom_mix__(image,bg_image, alpha_color))
             else:
                 raise Exception('不能识别的字符串图片类型')
 
         return mix_image_lists, boxes, bg_image
 
 
-    def __normal_mix__(self, image, bg_image, min_alpha=0.8):
-        height, width, _ = bg_image.shape
-        _x, _y = width // 2 - image.shape[1] // 2 , height // 2 - image.shape[0] // 2
-        mix_image = np.ones(image.shape, image.dtype)
-        mix_area_img = bg_image[_y:_y + image.shape[0], _x:_x + image.shape[1],:] 
-        mix_image[:,:,0] = np.median(mix_area_img[:,:,0])
-        mix_image[:,:,1] = np.median(mix_area_img[:,:,1])
-        mix_image[:,:,2] = np.median(mix_area_img[:,:,2])
-        # mask = np.ones(image.shape, np.uint8) * 255
-        # height, width, _ = image.shape
-        # center_y =  int(height/2)
-        # center_x =  int(width/2)
-        # center = (center_x,center_y)
-        # image = image.astype(np.uint8)
-        # bg_image = bg_image.astype(np.uint8)
-        # image = cv2.seamlessClone(image,mix_image, mask,center, cv2.MONOCHROME_TRANSFER)
-
-        alpha_1 = np.random.uniform(min_alpha, 0.95)
-        image = cv2.addWeighted(image, alpha_1, mix_image, 1-alpha_1, 0)
-
+    def __normal_mix__(self, image, bg_image):
+        mix_image = np.ones(image.shape, image.dtype) 
+        mix_image[:,:,0] = np.median(bg_image[:,:,0])
+        mix_image[:,:,1] = np.median(bg_image[:,:,1])
+        mix_image[:,:,2] = np.median(bg_image[:,:,2])
+        mask = np.ones(image.shape, np.uint8) * 255
+        height, width, _ = image.shape
+        center_y =  int(height/2)
+        center_x =  int(width/2)
+        center = (center_x,center_y)
+        image = image.astype(np.uint8)
+        bg_image = bg_image.astype(np.uint8)
+        # MONOCHROME_TRANSFER
+        image = cv2.seamlessClone(image,mix_image, mask,center, cv2.MONOCHROME_TRANSFER)
         return image
 
     def __custom_mix__(self,image,bg_image,alpha_color):
@@ -448,7 +436,7 @@ class CombinCharImages(object):
 # 混合字符图片，如有背景图片，则将其与背景图片进行混合
 # 进入的是单张图片
 class MaskAlphaImage(object):
-    def __init__(self, min_radio=0.9, max_radio=1.):
+    def __init__(self, min_radio=0.3, max_radio=0.7):
         self.min_radio = min_radio
         self.max_radio = max_radio
 
@@ -466,13 +454,9 @@ class MaskAlphaImage(object):
             return image, boxes, bg_image
         image, scale = self.__adjust_image_size__(image.copy(), bg_image)
         boxes[:,0:4] = boxes[:,0:4] * scale
-
-
         mask = np.ones(image.shape, np.uint8) * 255
         height, width, _ = image.shape
         b_height,b_width,_ = bg_image.shape
-
-
         center_y = np.random.randint(int(height/2) , int(b_height-(height/2))) if b_height > height else int(height/2)
         center_x = np.random.randint(int(width/2) , int(b_width-(width/2))) if b_width > width else int(width/2)
         center = (center_x,center_y)
@@ -489,18 +473,14 @@ class MaskAlphaImage(object):
         bg_image = bg_image.astype(np.uint8)
 
         # MONOCHROME_TRANSFER
-        # image = cv2.seamlessClone(image,bg_image, mask,center, cv2.MONOCHROME_TRANSFER)
-
-        bg_image[offset_y:offset_y+image.shape[0], offset_x:offset_x+image.shape[1],] = image
-
-        image = bg_image.copy()
+        image = cv2.seamlessClone(image,bg_image, mask,center, cv2.MONOCHROME_TRANSFER)
 
         return image, boxes, bg_image
 
 
 class ExpandMixImage(object):
 
-    def __init__(self, max_width_radio=1.2, max_height_radio=1.2):
+    def __init__(self, max_width_radio=1.5, max_height_radio=1.5):
         self.max_height_radio = max_height_radio
         self.max_width_radio =max_width_radio
 
@@ -551,7 +531,7 @@ class GTDBTransform(object):
             Mask2Windows(window=self.window), # 将图片粘贴到1200*1200窗口大小的坐标上面
             ConvertFromInts(),
             ToPercentCoords(window=self.window),  # 与ToAbsoluteCoords对应，将target 恢复成x1/width, x2/width, y1/height, y2/height
-            # Resize(self.size)   # 将变换后图片转成 size * size
+            Resize(self.size)   # 将变换后图片转成 size * size
         ])
 
     def __call__(self, img, boxes, bg_img):

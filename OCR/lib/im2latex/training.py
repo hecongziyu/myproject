@@ -40,7 +40,7 @@ class Trainer(object):
             losses = 0.0
             # batch_iterator = iter(self.train_loader)
             for imgs, tgt4training, tgt4cal_loss in self.train_loader:
-                # print('input imgs size :', imgs.size())
+                print('input imgs size :', imgs.size())
                 step_loss = self.train_step(imgs, tgt4training, tgt4cal_loss)
                 losses += step_loss
                 # self.step = self.step + 1

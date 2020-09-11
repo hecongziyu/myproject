@@ -88,7 +88,7 @@ def batch_valid(latex_producer,vocab,args):
 def batch_valid_2(latex_producer, vocab, args):
     dataset = lmdbDataset(root=args.dataset_root, split='train', max_len=args.max_len, transform=ImgTransform())
     print('len data set ', len(dataset))
-    valid_loader = DataLoader(dataset, shuffle=True, batch_size=1,
+    valid_loader = DataLoader(dataset, shuffle=True, batch_size=2,
                             collate_fn=partial(collate_fn, vocab.sign2id),
                             pin_memory=True if use_cuda else False)
 
@@ -105,7 +105,8 @@ def batch_valid_2(latex_producer, vocab, args):
             print('results:', results)
             # print('tgt4cal_loss:', reference)
             break
-        except RuntimeError:
+        except Exception as e:
+            print(e)
             break
 
 

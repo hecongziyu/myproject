@@ -101,9 +101,10 @@ class ConvertFromInts(object):
 
 # 随机改变大小
 class RandomSize(object):
-    def __init__(self, min_radio=0.35, max_radio=0.5, min_size=900):
+    def __init__(self, min_radio=0.35, max_radio=0.5, min_size=900, min_height=24):
         self.min_radio = min_radio
         self.max_radio = max_radio
+        self.min_height = min_height
         self.min_size = 900
     def __call__(self, image):
         height, width, _ = image.shape
@@ -124,6 +125,7 @@ class RandomSize(object):
 
 
         radio = random.uniform(min_radio, max_radio)
+        radio = max(radio, self.min_height/height)
         print('befor image shape :', image.shape, ' radio :', radio)
         image = cv2.resize(image.copy(), (int(width*radio),int(height * radio)), interpolation=cv2.INTER_AREA)
         print('after image shape ', image.shape)
@@ -187,9 +189,9 @@ class ImgTransform(object):
         self.augment = Compose([
                 RemoveWhiteBoard(),
                 # 注意因为生成训练图片时，图片是按8096/5左右大小生成的，所以图片需要放小
-                RandomSize(min_size=self.min_size, min_radio=0.1, max_radio=0.4),
-                AdjustSize(max_height=self.max_height, max_width=self.max_width),
-                Mask2Windows(window=self.window),
+                RandomSize(min_size=self.min_size, min_radio=0.9, max_radio=1),
+                # AdjustSize(max_height=self.max_height, max_width=self.max_width),
+                # Mask2Windows(window=self.window),
                 ConvertFromInts()
             ])
 

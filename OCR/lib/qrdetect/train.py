@@ -87,7 +87,7 @@ def train(args):
         torch.cuda.set_device(gpu_id)
 
     ssd_net = build_ssd(args, 'train', cfg, gpu_id, cfg['min_dim'], cfg['num_classes'])
-    # print(ssd_net)
+    print('model :' , ssd_net)
     ct = 0
     # freeze first few layers
     for child in ssd_net.vgg.children():

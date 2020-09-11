@@ -21,22 +21,22 @@ class AlignmentSimple:
 
 class EntityAlignment:
     '''
-    实体对齐， 暂时用较简单方式，python 自带的difflib
+    实体对齐， 实体链接，暂时用较简单方式，python 自带的difflib
     后期采用深度学习等基它方式进行对齐，包括属性等等
     '''
     def __init__(self, align_type='simple', sim_threshold=0.8):
         self.alignment = None
-        self.sim_threshold = sim_threshold
         if align_type == 'simple':
             self.alignment = AlignmentSimple()
 
 
-    def similar(self, text1, text2=None, text2_lists=None):
+    def entity_similar(self, text1, text2=None, text2_lists=None, sim_threshold=0.8):
         if text2 is not None:
             return self.alignment(text1, text2)
         elif text2_lists is not None:
             sim_lists =  [(x, self.alignment(text1,x)) for x in text2_lists]
-            sim_lists =  [x for x in sim_lists if x[1] >= self.sim_threshold]
+            sim_lists.sort(key=lambda x:x[1], reverse=True)
+            sim_lists =  [x[0] for x in sim_lists if x[1] >= sim_threshold]
             return sim_lists
 
 

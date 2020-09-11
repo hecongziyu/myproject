@@ -32,9 +32,11 @@ class SSD(nn.Module):
         self.num_classes = num_classes
         self.cfg = cfg#(coco, voc)[num_classes == 21]
         self.priorbox = PriorBox(args, self.cfg)
+
         #self.priors = Variable(self.priorbox.forward(), volatile=True)
         with torch.no_grad():
             self.priors = self.priorbox.forward()
+            print('prior box size :', self.priors.size())
             if args.cuda:
                 self.priors.to(gpu_id)
 
@@ -130,8 +132,13 @@ class SSD(nn.Module):
         # loc conf 0 output size : torch.Size([1, 64, 64, 28]) torch.Size([1, 64, 64, 14])
         # print('loc conf 0 output size :', loc[0].size(), conf[0].size())
 
+        for idx, co in enumerate(conf):
+            print(f'{idx} size --> ', co.view(co.size(0), -1).size())
+
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
+
+        print('total conf size :', conf.size())
 
         # loc cat size:  torch.Size([1, 152908]) torch.Size([1, 76454])
         # print('loc cat size: ', loc.size(), conf.size())

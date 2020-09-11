@@ -4,10 +4,8 @@ import cv2
 import numpy as np
 import types
 from numpy import random
-from math import fabs,sin,radians,cos
 
-# https://www.cnblogs.com/lfri/p/10627595.html 图片随机添加噪声
-# 
+
 # check if two rectangles intersect
 def intersects(first, other):
     return not (first[2] < other[0] - 15 or
@@ -29,7 +27,7 @@ class Compose(object):
 def randomQrSize(image, min_height=24, min_width=24, is_origin=False):
     height, width, _ = image.shape
     if is_origin:
-        radio = np.random.uniform(0.4, 0.60)
+        radio = np.random.uniform(0.5, 1)
     else:
         radio = np.random.uniform(0.7, 1.2)
 
@@ -40,26 +38,12 @@ def randomQrSize(image, min_height=24, min_width=24, is_origin=False):
     if random_sel in [0,1]:
         image = cv2.resize(image, (0,0), fx=radio,fy=radio,interpolation=cv2.INTER_AREA)
     elif random_sel == 2:
-        image = cv2.resize(image, (0,0), fx=radio,fy=radio*1.2,interpolation=cv2.INTER_AREA)
+        image = cv2.resize(image, (0,0), fx=radio,fy=radio*1.5,interpolation=cv2.INTER_AREA)
     elif random_sel == 3:
-        image = cv2.resize(image, (0,0), fx=radio*1.2,fy=radio,interpolation=cv2.INTER_AREA)
+        image = cv2.resize(image, (0,0), fx=radio*1.5,fy=radio,interpolation=cv2.INTER_AREA)
 
     return image
 
-
-# 旋转图片
-def rotate_image(image, degree, border_value=(255,255,255)):
-    height,width=image.shape[:2]
-    heightNew=int(width*fabs(sin(radians(degree)))+height*fabs(cos(radians(degree))))
-    widthNew=int(height*fabs(sin(radians(degree)))+width*fabs(cos(radians(degree))))
-
-    matRotation=cv2.getRotationMatrix2D((width/2,height/2),degree,1)
-    matRotation[0,2] +=(widthNew-width)/2  #重点在这步，目前不懂为什么加这步
-    matRotation[1,2] +=(heightNew-height)/2  #重点在这步
-    imgRotation=cv2.warpAffine(image,matRotation,(widthNew,heightNew),borderValue=border_value)
-
-    return imgRotation, matRotation
-    
 
 
 
@@ -123,16 +107,15 @@ class MaskQRImage(object):
         def __get_not_intersects__pos__(x_pos_range, y_pos_range, img_size,used_pos_lists):
             height, width = img_size
             new_pos = None
-            if x_pos_range[1] > x_pos_range[0] and y_pos_range[1] > y_pos_range[0]:
-                r_pos_lists = [(np.random.randint(x_pos_range[0], x_pos_range[1]), np.random.randint(y_pos_range[0], y_pos_range[1])) for _ in range(10)]
-                # r_pos_lists = [(x[0] - width, x[1] - height, x[1] + width, y1 + height ) for x in r_center_pos_lists]
-                for idx, (r_x, r_y) in enumerate(r_pos_lists):
-                    r_box  = [r_x, r_y, r_x+width, r_y+height, 0]
-                    r_box_check = [intersects(r_box, x) for x in used_pos_lists]
-                    # 判断当前随机的位置是否与已有的位置有重合
-                    if not any(r_box_check):
-                        new_pos = r_box
-                        break
+            r_pos_lists = [(np.random.randint(x_pos_range[0], x_pos_range[1]), np.random.randint(y_pos_range[0], y_pos_range[1])) for _ in range(10)]
+            # r_pos_lists = [(x[0] - width, x[1] - height, x[1] + width, y1 + height ) for x in r_center_pos_lists]
+            for idx, (r_x, r_y) in enumerate(r_pos_lists):
+                r_box  = [r_x, r_y, r_x+width, r_y+height, 0]
+                r_box_check = [intersects(r_box, x) for x in used_pos_lists]
+                # 判断当前随机的位置是否与已有的位置有重合
+                if not any(r_box_check):
+                    new_pos = r_box
+                    break
             return new_pos
             
 
@@ -192,64 +175,6 @@ class MaskQRImage(object):
         return img,qr_img, boxes
 
 
-# https://blog.csdn.net/qq_38395705/article/details/106311905?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3.channel_param&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3.channel_param
-class RandomNoise(object):
-    def __init__(self, sp_prob=0.015, gas_mean=0, gas_var=0.001):
-        self.sp_prob = sp_prob
-        self.gas_mean = gas_mean
-        self.gas_var = gas_var
-
-    def __sp_noise__(self,image,prob):
-        '''
-        添加椒盐噪声
-        prob:噪声比例
-        '''
-        output = np.zeros(image.shape,np.uint8)
-        thres = 1 - prob
-
-        for i in range(image.shape[0]):
-            for j in range(image.shape[1]):
-                rdn = random.random()
-                if rdn < prob:
-                    output[i][j] = 0
-                elif rdn > thres:
-                    output[i][j] = 255
-                else:
-                    output[i][j] = image[i][j]
-        return output
-
-    def __gasuss_noise__(self, image, mean=0, var=0.001):
-
-        '''
-            添加高斯噪声
-            mean : 均值
-            var : 方差
-        '''
-        
-        image = np.array(image/255, dtype=float)
-        noise = np.random.normal(mean, var ** 0.5, image.shape)
-        out = image + noise
-        if out.min() < 0:
-            low_clip = -1.
-        else:
-            low_clip = 0.
-        # clip这个函数将将数组中的元素限制在a_min, a_max之间，大于a_max的就使得它等于 a_max，小于a_min,的就使得它等于a_min
-        out = np.clip(out, low_clip, 1.0)
-        out = np.uint8(out*255)
-        return out    
-
-
-    def __call__(self, img, qr_img, boxes):
-        random_sel = np.random.randint(5)            
-        if random_sel == 0:
-            img = self.__sp_noise__(img, self.sp_prob)
-        elif random_sel == 1:
-            qr_img = self.__sp_noise__(qr_img, self.sp_prob)
-        elif random_sel == 2:
-            img = self.__gasuss_noise__(img, self.gas_mean, self.gas_var)
-        elif random_sel == 3:
-            qr_img = self.__gasuss_noise__(qr_img, self.gas_mean, self.gas_var)
-        return img, qr_img, boxes
 
 class RandomRemoveQR(object):
     # 随机移走0到2个QR
@@ -263,6 +188,7 @@ class RandomRemoveQR(object):
         for idx in random_sel:
             x0,y0,x1,y1,label = _tmp_boxes[idx]
             if label != -1 :
+                
                 img[y0:y1,x0:x1, 0] = np.median(img[:,:,0])
                 img[y0:y1,x0:x1, 1] = np.median(img[:,:,1])
                 img[y0:y1,x0:x1, 2] = np.median(img[:,:,2])
@@ -270,62 +196,6 @@ class RandomRemoveQR(object):
 
         if boxes.shape[0] == 0:
             boxes = np.array([[-1,-1,-1,-1,-1]])
-
-        return img, qr_img, boxes
-
-class RandomRotateQR(object):
-    # 随机旋转QR图片
-    def __init__(self, degree_range=(-20,20)):
-        self.degree_range = degree_range
-
-    def __call__(self, img, qr_img, boxes):
-        if np.random.randint(2) == 0:
-            degree = np.random.uniform(self.degree_range[0], self.degree_range[1])
-            border_value = (np.median(img[:,:,0]),np.median(img[:,:,1]),np.median(img[:,:,2]))
-            qr_img, _ = rotate_image(qr_img, degree,border_value)
-        return img, qr_img, boxes
-
-
-class RandomRotateImg(object):
-    # 随机旋转整个图片，并调整boxes对应的位置信息
-    def __init__(self):
-        self.normal_degree = [0,90,180,-90]
-        self.degree_range = (-15,15)
-
-    def get_box_pos(self,src_pos, map_rotation):
-        x0,y0,x1,y1 = src_pos
-        _src_pos = [(x0,y0),(x0,y1),(x1,y0),(x1,y1)]
-        _pos_x_list = []
-        _pos_y_list = []
-        for pos in _src_pos:
-            x,y = pos
-            _x,_y = np.dot(map_rotation, np.array([[x],[y],[1]]))
-            _pos_x_list.append(int(_x))
-            _pos_y_list.append(int(_y))
-        dest_pos = [min(_pos_x_list), min(_pos_y_list), max(_pos_x_list), max(_pos_y_list)]
-        return dest_pos    
-
-    def __call__(self, img, qr_img, boxes):
-        random_sel = np.random.randint(4)
-        degree = 0
-        if random_sel == 0:
-            degree = self.normal_degree[np.random.randint(len(self.normal_degree))]
-        elif random_sel == 1:
-            degree = np.random.uniform(self.degree_range[0], self.degree_range[1])
-        elif random_sel == 2:
-            degree = np.random.uniform(-5, 5)
-        else:
-            pass
-
-        if degree != 0:
-            border_value = (np.median(img[:,:,0]),np.median(img[:,:,1]),np.median(img[:,:,2]))
-            img, map_rotataion = rotate_image(img, degree,border_value)
-            boxes_lists = []
-            for box in boxes.tolist():
-                label = box[-1]
-                x0,y0,x1,y1 = self.get_box_pos(box[0:4], map_rotataion)
-                boxes_lists.append([x0,y0,x1,y1,label])
-            boxes = np.array(boxes_lists)
 
         return img, qr_img, boxes
 
@@ -391,9 +261,6 @@ class QRTransform(object):
         self.max_width = max_width
         self.size = size
         self.augment = Compose([
-            RandomNoise(),
-            RandomRotateQR(),
-            RandomRotateImg(),
             MaskQRImage(),
             RandomRemoveQR(),
             AdjustSize(),
