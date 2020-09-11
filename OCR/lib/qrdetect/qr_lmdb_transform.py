@@ -391,7 +391,7 @@ class QRTransform(object):
         self.max_width = max_width
         self.size = size
         self.augment = Compose([
-            RandomNoise(),
+            RandomNoise(sp_prob=0.005, gas_mean=0, gas_var=0.0005),
             RandomRotateQR(),
             RandomRotateImg(),
             MaskQRImage(),

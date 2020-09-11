@@ -186,10 +186,10 @@ if __name__ == '__main__':
                         window=1200, transform=QRTransform(), target_transform=AnnotationTransform())    
 
     print('data set len :', len(dataset))
-    random_sel = np.random.randint(0, len(dataset), 100).tolist()
+    random_sel = np.random.randint(len(dataset) - 300, len(dataset), 300).tolist()
 
     # len(dataset)-50,
-    for ridx, idx in enumerate(range(len(dataset))):
+    for ridx, idx in enumerate(range(len(dataset) - 300,len(dataset))):
         image, boxes = dataset[idx]
         image = image.astype(np.uint8)
         image = cv2.resize(image, (1200,1200), interpolation=cv2.INTER_AREA)

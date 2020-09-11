@@ -218,7 +218,11 @@ def pre_handle_error(data_dir):
             print('文件已在训练数据中, ', eitem)
         else:
             print('将原始文件添加到手工处理目录中:', eitem)
-            shutil.copy(join(data_dir,'images', 'real','source', eitem), join(data_dir, 'error_imgs', 'source'))
+            image = cv2.imread(join(data_dir,'images','real','source',eitem),cv2.IMREAD_COLOR)
+            radio = 2048/image.shape[0]
+            image = cv2.resize(image, (0,0), fx=radio, fy=radio, interpolation=cv2.INTER_AREA)
+            cv2.imwrite(join(data_dir, 'error_imgs', 'source',eitem), image)
+            # shutil.copy(join(data_dir,'images', 'real','source', eitem), join(data_dir, 'error_imgs', 'source'))
 
 
 # 生成错误识别后手工标记数据
@@ -301,7 +305,7 @@ if __name__ == '__main__':
 
 
     # 错误识别图形手工处理预处理部分
-    # pre_handle_error(args.data_dir)
+    pre_handle_error(args.data_dir)
 
     # 生成错误识别后手工标记数据
-    gen_handle_qr_image(args.data_dir)
+    # gen_handle_qr_image(args.data_dir)
