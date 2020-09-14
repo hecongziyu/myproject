@@ -58,16 +58,21 @@ class NERSynonyms:
 
 class NERPkuseg:
     '''
+    https://www.jianshu.com/p/690f04f41bc8
     基于pkuseg分词器进行实体识别
     '''
-    def __init__(self,dict_file, include_token=['n','v']):
+    def __init__(self,dict_file, include_token=['n','v','nunk','nkn','p','b','m']):
         self.dict_file = dict_file
-        self.seg = pkuseg.pkuseg(model_name='news', postag=True, user_dict=self.dict_file)
+        print('dict file :', self.dict_file)
+        self.seg = pkuseg.pkuseg(postag=True, user_dict=self.dict_file)
+        self.include_token = include_token
 
     def __call__(self, text):
         tokens = self.seg.cut(text)
-        print('tokens :', tokens)
-        return tokens
+        print('seg text lists:', tokens)
+        token_list = [x[0] for x in tokens if x[1] != 'w']
+        token_pos_list = [x[1] for x in tokens if x[1] != 'w']
+        return (token_list, token_pos_list)
 
     def __adjust_tokens__(self, tokens, token_pos_list):
         '''
@@ -75,7 +80,8 @@ class NERPkuseg:
         '''
         a_tokens = []
         a_tokens_pos = []
-
+        print('tokens :', tokens)
+        print('token_pos_list :', token_pos_list)
         cur_pos = None
         cur_token = None
         for idx, pos in  enumerate(token_pos_list):
@@ -99,7 +105,8 @@ class NERPkuseg:
         return (a_tokens, a_tokens_pos)
 
 
-ENTITY_UNK = 'UNK'
+ENTITY_UNK = 'nunk'
+ENTITY_KN = 'nkn'
 
 class NERecognition:
     '''
@@ -108,7 +115,7 @@ class NERecognition:
     2、深度学习（等规则匹配完成后，通过程序生成训练数据再做）
 
     '''
-    def __init__(self,dict_file,pku_dict_file, seg_name='pkuseg', entity_aligment=None):
+    def __init__(self,dict_file,pku_dict_file=None, seg_name='pkuseg', entity_aligment=None):
         '''
         dict file : 已识别完成的实体字典信息， 格式：（实体名，类别） 
         类别定义： 知识点， 其它， 无用
@@ -117,7 +124,7 @@ class NERecognition:
         self.dict_file = dict_file
         self.rec_map = {
             # 'synonyms':NERSynonyms(dict_file=self.dict_file,include_token=['n','v']),
-            'pkuseg':NERPkuseg(dict_file=self.dict_file,include_token=['n'])
+            'pkuseg':NERPkuseg(dict_file=self.dict_file,include_token=['n','v','nkn'])
         }
         self.seg = self.rec_map[seg_name]
         self.entity_aligment = entity_aligment
@@ -142,12 +149,14 @@ class NERecognition:
             f.write('\n'.join(lines))
 
     def __update_dict__(self, entity_lists):
-        for entity_name, entity_pos, entity_class in entity_lists:
-            if entity_class == 'OTH'  or entity_name in self.entity_map:
-                pass
-            else:
+        refresh_flag = False
+        for entity_name, entity_pos in entity_lists:
+            if entity_pos == ENTITY_KN  and entity_name not in self.entity_map:
                 self.entity_map[entity_name] = entity_class
-        self.__save_dict__()
+                refresh_flag = True
+
+        if refresh_flag:
+            self.__save_dict__()
 
 
     def extract_entity(self, text):
@@ -167,13 +176,13 @@ class NERecognition:
 
 
         # 在已有词典进行查找, 对名词进行分类标注
-        entity_list = [(x, token_pos_list[idx], self.entity_classify(x, token_pos_list[idx])) for idx, x in enumerate(tokens) ]
+        entity_list = [(x, self.entity_classify(x, token_pos_list[idx])) for idx, x in enumerate(tokens) ]
         print('entity lists :', entity_list)
         logger.debug('entity lists : %s ' % len(entity_list))
 
 
         # 更新字典信息
-        self.__update_dict__(entity_list)
+        # self.__update_dict__(entity_list)
         return entity_list
 
 
@@ -182,8 +191,11 @@ class NERecognition:
         实体类别判断，前期通过规则匹配方式，后期修改为深度学习方式
         pos 词性
         '''
-        if pos != 'n':
-            return 'OTH'
+        if pos.find('n') == -1:
+            return pos
+
+        if pos == ENTITY_KN:
+            return ENTITY_KN
 
         entity_name = re.sub(r'[的]{0,1}性质|定义|特征','', entity_name)
 

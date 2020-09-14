@@ -74,7 +74,7 @@ def __get_image_boxes__(model, image):
     recognized_boxes = []
     recognized_scores = []
     # while j < detections.size(1) and detections[k, i, j, 0] >= 0.05:
-    while j<= detections.size(2) and detections[k, i, j, 0] >= 0.45:
+    while j<= detections.size(2) and detections[k, i, j, 0] >= 0.01:
         score = detections[k, i, j, 0]
         print('score :', score)
         pt = (detections[k, i, j, 1:] * args.window).cpu().numpy()
@@ -171,8 +171,8 @@ def test_file_images(args, model, file_name):
 
 
 def test_batch_image(args, model):
-    # file_lists = os.listdir(join(args.root_path, 'images','temp','temporary'))
-    file_lists = os.listdir(join(args.root_path, 'error_imgs','error'))
+    file_lists = os.listdir(join(args.root_path, 'images','real','source'))
+    # file_lists = os.listdir(join(args.root_path, 'error_imgs','error'))
     # print('file lists ', file_lists)
     file_lists = [x for x in file_lists if x.find('.jpg') != -1]
     print(len(file_lists))

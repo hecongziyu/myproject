@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-# https://www.jianshu.com/p/0eaeba15ee68 
+# https://www.jianshu.com/p/0eaeba15ee68  词法分析和语法解析
 import ply.lex as lex
 
 # List of token names.   This is always required

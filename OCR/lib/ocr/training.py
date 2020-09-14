@@ -5,6 +5,7 @@ import utils
 import torch
 from torch.nn.utils import clip_grad_norm_
 from torch.autograd import Variable
+import logging
 
 class Trainer(object):
     def __init__(self, optimizer, model,criterion,lr_scheduler,
@@ -28,6 +29,7 @@ class Trainer(object):
         self.best_val_loss = 1e18
         self.device = torch.device("cuda" if use_cuda else "cpu")
         self.best_accuracy = -1
+
 
     def train(self):
         mes = "Epoch {}, step:{}/{} {:.2f}%, Loss:{:.4f}"
@@ -53,6 +55,7 @@ class Trainer(object):
                     # with torch.no_grad():
                     images = Variable(images.type(dtype))
                     text, length = self.converter.encode(labels)
+
                         # utils.loadData(text, t)
                         # utils.loadData(length, l)
                     preds = self.model(images).cpu()
@@ -65,8 +68,8 @@ class Trainer(object):
                     self.optimizer.step()        
 
 
-                    if total_step % 100 == 0:
-                        print(mes.format(self.epoch,total_step, len(self.train_loader), (total_step/len(self.train_loader)),batch_losses/100))     
+                    if total_step % 2 == 0:
+                        logging.info(mes.format(self.epoch,total_step, len(self.train_loader), (total_step/len(self.train_loader)),batch_losses/100))     
                         batch_losses = 0
                     total_step += 1
                 except Exception as e:
@@ -74,7 +77,7 @@ class Trainer(object):
                 
 
             accuracy, num_correct, valid_loss = self.valid()
-            print('valid accuracy {}, num_correct {}, valid {}'.format(accuracy, num_correct, valid_loss))
+            logging.info('valid accuracy: {}, num_correct: {}, valid: {} best accuracy: {}'.format(accuracy, num_correct, valid_loss, self.best_accuracy))
             self.lr_scheduler.step(valid_loss)
 
             if accuracy > self.best_accuracy:
@@ -85,7 +88,7 @@ class Trainer(object):
 
 
     def valid(self):
-        print('begin valid data ...')
+        logging.info('begin valid data ...')
         if self.use_cuda:
             self.model.cuda()
             dtype = torch.cuda.FloatTensor
@@ -102,33 +105,35 @@ class Trainer(object):
                 try:
                     images, labels = next(batch_iterator)
                     images = Variable(images.type(dtype))
+                    count += images.size(0)  
                     text, length =  self.converter.encode(labels)
+                    logging.info('labels: %s text: %s, lenght : %s' % (labels, text, length))
                     preds = self.model(images).cpu()
                     preds_size = Variable(torch.IntTensor([preds.size(0)] * preds.size(1)))
                     loss = self.criterion(preds, text, preds_size, length) / preds.size(1)
                     valid_loss += loss
                     _, preds = preds.max(2)
                     preds = preds.transpose(1, 0).contiguous().view(-1)
+                    logging.info('preds : %s' % preds)
                     sim_preds = self.converter.decode(preds.data, preds_size.data, raw=False)
 
                     for pred, target in zip(sim_preds, labels):
                         if pred == target.lower():
                             n_correct += 1  
-                    count += 1      
+                        
                 except Exception as e:
                     print('valid exception :', e)
         valid_loss = valid_loss / len(self.val_loader)
-        print('sim preds -->{}'.format(sim_preds))
-        print('text -->{}'.format(labels))
-        # print('count --> {}'.format(count))
-        accuracy = n_correct / len(self.val_loader)
+        logging.info('sim preds -->{}'.format(sim_preds))
+        logging.info('text -->{}'.format(labels))
+        accuracy = n_correct / count
         return accuracy, n_correct, valid_loss
 
     def save_model(self, model_name):
         if not os.path.isdir(self.args.save_dir):
             os.makedirs(self.args.save_dir)
         save_path = join(self.args.save_dir, model_name+'.pt')
-        print("Saving checkpoint to {}".format(save_path))
+        logging.info("Saving checkpoint to {}".format(save_path))
         torch.save(self.model.state_dict(), save_path)
 
 

@@ -283,13 +283,13 @@ if __name__ == '__main__':
 
     print('data set len :', len(dataset))
 
-    for idx in range(1000):
+    for idx in range(10):
         # try:
-        if idx % 100 == 0:
-            print('handle %d' % idx)
+        # if idx % 100 == 0:
+            # print('handle %d' % idx)
         image, label = dataset[idx]
         image = image.astype(np.int)
-        # print('label:', label, ' image shape:', image.shape)
+        print('label:', label, ' image shape:', image.shape)
 
         cv2.imwrite(os.path.sep.join([tmp_path,f'{label}_{idx}.png']),image)
         # except:
@@ -298,16 +298,16 @@ if __name__ == '__main__':
         # plt.show()
     use_cuda = False
 
-    # train_loader = DataLoader(
-    #     dataset,
-    #     batch_size=10,
-    #     shuffle=True,
-    #     pin_memory=True if use_cuda else False,
-    #     collate_fn=adjustCollate(imgH=32, keep_ratio=True),
-    #     num_workers=0)   
+    train_loader = DataLoader(
+        dataset,
+        batch_size=10,
+        shuffle=True,
+        pin_memory=True if use_cuda else False,
+        collate_fn=adjustCollate(imgH=32, keep_ratio=True),
+        num_workers=0)   
 
-    # for images, labels in train_loader:
-    #     print('image shape:', images.size(), ' labels :', labels)
+    for images, labels in train_loader:
+        print('image shape:', images.size(), ' labels :', labels)
 
 
     # start_time = time.time()

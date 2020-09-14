@@ -137,7 +137,7 @@ if __name__ == '__main__':
         example_batch = next(iter(dataloader)) 
 
         print('image size: ', example_batch[0].size())
-        break;
+        # break;
 
         concatenated = torch.cat((example_batch[0],example_batch[1]),0) 
 
