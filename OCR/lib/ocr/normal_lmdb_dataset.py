@@ -122,7 +122,11 @@ class lmdbDataset(Dataset):
         else:
             image = None
             target = 'z'
-        # target = " ".join(target.split()[0:self.max_len])
+        target = "".join(target.split()[0:self.max_len])
+
+        if self.transform:
+            image, target = self.transform(image, target)
+
         return image, target
 
     def __get_image__(self, txn, image_key):
@@ -139,8 +143,6 @@ class lmdbDataset(Dataset):
     def pull_train_item(self, txn, index):
         image = self.__get_image__(txn, f'i_{index}')
         target = self.__get_target__(txn, f't_{index}')
-        if self.transform:
-            image, target = self.transform(image, target)
         return image, target
 
 
@@ -174,19 +176,20 @@ if __name__ == '__main__':
 
     use_cuda = True if args.cuda and torch.cuda.is_available() else False
 
-    dataset = lmdbDataset(root=args.data_root, split='valid',transform=ImgTransform(data_root=args.data_root))
+    dataset = lmdbDataset(root=args.data_root, split='train',transform=ImgTransform(data_root=args.data_root))
 
     dataset_size = len(dataset)
 
     print('dataset size:', dataset_size)
-    # random_sel = np.random.randint(0 , len(dataset), 50).tolist()
+    random_sel = np.random.randint(0 , len(dataset), 300).tolist()
 
-    for ridx, idx in  enumerate(list(range(50))):
+    # for ridx, idx in  enumerate(list(range(4900, 5020))):
+    for ridx, idx in  enumerate(random_sel):
         image, target = dataset[idx]
         image = image.astype(np.uint8)
         print(idx , '--->', ' image shape:', image.shape)
         print('target:', target.strip())
-        cv2.imwrite(os.path.sep.join([args.data_root,'valid_img',f'{idx}_{target}.png']),image)
+        cv2.imwrite(os.path.sep.join([args.data_root,'valid_img',f'{ridx}_{target}.png']),image)
         
         # print('target:', [vocab.sign2id(x,3) for x in target.strip()])
         # plt.imshow(image)

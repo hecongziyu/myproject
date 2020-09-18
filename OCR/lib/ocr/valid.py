@@ -8,105 +8,93 @@ from image_utils import detect_char_area,convert_img_bin
 import torchvision.transforms as transforms
 from ocr_model import CRNNClassify
 from torch.autograd import Variable
+from utils import strLabelConverter
+from matplotlib import pyplot as plt
 
 
 toTensor = transforms.ToTensor()
 
-class strLabelConverter(object):
-    def __init__(self, alphabet):
-        self.alphabet = alphabet + u'-'  # for `-1` index
-        self.dict = {}
-        for i, char in enumerate(alphabet):
-            # NOTE: 0 is reserved for 'blank' required by wrap_ctc
-            self.dict[char] = i + 1
-
-    def encode(self, text, depth=0):
-        """Support batch or single str."""
-        length = []
-        result = []
-        for str in text:
-            # str = unicode(str, "utf8")    # python 3 默认为utf 8
-            length.append(len(str))
-            for char in str:
-                # print(char)
-                index = self.dict[char]
-                result.append(index)
-        text = result
-        return (torch.IntTensor(text), torch.IntTensor(length))
-
-    def decode(self, t, length, raw=False):
-        if length.numel() == 1:
-            length = length[0]
-            t = t[:length]
-            if raw:
-                return ''.join([self.alphabet[i - 1] for i in t])
-            else:
-                char_list = []
-                for i in range(length):
-                    if t[i] != 0 and (not (i > 0 and t[i - 1] == t[i])):
-                        char_list.append(self.alphabet[t[i] - 1])
-                return ''.join(char_list)
-        else:
-            texts = []
-            index = 0
-            for i in range(length.numel()):
-                l = length[i]
-                texts.append(self.decode(
-                    t[index:index + l], torch.IntTensor([l]), raw=raw))
-                index += l
-            return texts
+def detect_char_pos(image_gray_data, min_area = 80,min_y_diff=5):
+    img = image_gray_data.copy()
+    blur = cv2.GaussianBlur(img, (7,3), 0)
+    thresh = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,51,10)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7,3))
+    dilate = cv2.dilate(thresh, kernel, iterations=3)    
+    plt.imshow(dilate)
+    plt.show()
+    contours, hierarchy = cv2.findContours(dilate, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = []
+    for cnt in contours:
+        if cv2.contourArea(cnt) > min_area:    
+            rect = cv2.boundingRect(cnt)
+            x,y,w,h = rect
+            if (y+h)/2 > img.shape[0]*0.1 and w/h < 3:
+                cnts.append([x,y,x+w,y+h, cv2.contourArea(cnt)])
+    areas = np.array(cnts,dtype=np.uint8)
+    print('areas len :', len(areas))
+    if areas is None or len(areas) == 0:
+        return 0,0,0,0
+    areas_max = np.argmax(areas[:,4], axis=0)
+    x1,y1,x2,y2,_ = areas[areas_max]
+    return x1,y1,x2,y2
 
 
-def normalize(image):
-    # print('in -->', image.shape, ',', image, )
-    image = toTensor(image)
-    # print('before -->', image)
-    # image.sub_(0.5).div_(0.5)
-    # print('after -->', image)
-    return image
 
-def valid(net,image_path, image_height,alpha, need_detect_char=False, need_dilate=False,convert_to_bin=True,channel=1):
+def valid(model,image, alpha, image_height=32,need_detect_char=False, need_dilate=False,convert_to_bin=True,channel=1):
     converter = strLabelConverter(alpha)
-    image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-    print(image.shape)
 
-    # if need_detect_char:
-    #     image_gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-    #     image_gray_area = image_gray.shape[0] * image_gray.shape[1]
-    #     # print('image_gray_area -->{}'.format(image_gray_area))
-    #     x1,y1,x2,y2 = detect_char_area(image_gray,min_area=image_gray_area*0.05,min_y_diff=5)
-    #     if np.sum([x1,y1,x2,y2]) == 0:
-    #         return ""
-    #     image = image_gray[y1:y2,x1:x2]
-    # else:
-    #     print('No detect_char_area')
-    image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    image_gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    x0,y0,x1,y1 = detect_char_pos(image_gray)
+    image = image[y0:y1,x0:x1,]
 
-    # plt.imshow(image,'gray')
-    # plt.show()
     scale =  float(image_height) / image.shape[0]
-    image = cv2.resize(image,(0,0), fx=scale, fy=scale, interpolation = cv2.INTER_NEAREST)
 
-    image = normalize(image)
+    image = cv2.resize(image,(0,0), fx=scale, fy=scale, interpolation = cv2.INTER_NEAREST)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    plt.imshow(image)
+    plt.show()
+
+    image.astype(np.float32)
+    image = toTensor(image)
     image = image.unsqueeze(0)
 
-    output = net(image)
-    _,preds = output.max(2)
-    preds = preds.squeeze(-2)
-    preds = preds.view(-1)
-    preds_size = Variable(torch.IntTensor([preds.size(0)]))
-    words = converter.decode(preds.data, preds_size, raw=False)
+    print('image size :', image.size())
+
+    with torch.no_grad():
+        preds = model(image).cpu()
+        _, preds = preds.max(2)
+        # print('preds size :', preds.size())
+        preds = preds.transpose(1, 0).contiguous().view(-1)
+        preds_size = Variable(torch.IntTensor([preds.size(0)]))
+        words = converter.decode(preds.data, preds_size.data, raw=False)
+        print('words :', words)
+
+    # image = normalize(image)
+    # image = image.unsqueeze(0)
+
+    # output = net(image)
+    # _,preds = output.max(2)
+    # preds = preds.squeeze(-2)
+    # preds = preds.view(-1)
+    # preds_size = Variable(torch.IntTensor([preds.size(0)]))
+    # words = converter.decode(preds.data, preds_size, raw=False)
     
-    # print('words:', words)
-    return words
+    # # print('words:', words)
+    # return words
 
 
 if __name__ == '__main__':
+    from os.path import join
+    from normal_lmdb_dataset import lmdbDataset
+    from normal_lmdb_transform import ImgTransform
+    
+
     parser = argparse.ArgumentParser(description="OCR Evaluating Program")
-    parser.add_argument('--model_name',default='ocr_best.pt', type=str, help='path of the evaluated model')
-    parser.add_argument('--alpha', default='abcdefghz')
-    parser.add_argument('--image_file',default='5.png', type=str, help='path of the evaluated model')
-    parser.add_argument('--data_root',default='D:\\PROJECT_TW\\git\\data\\ocr', type=str, help='path of the evaluated model')
+    parser.add_argument('--model_name',default='ocr_number_best.pt', type=str, help='path of the evaluated model')
+    parser.add_argument('--alpha', default='0123456789z')
+    parser.add_argument('--file_name', default='1_1.png', type=str)
+    parser.add_argument('--data_root',default=r'D:\PROJECT_TW\git\data\ocr\number', type=str, help='path of the evaluated model')
     parser.add_argument("--image_height", type=int, default=32, help="图片高度")
 
 
@@ -114,33 +102,19 @@ if __name__ == '__main__':
     # torch.manual_seed(2020)
     # torch.cuda.manual_seed(2020)
 
-    net = CRNNClassify(imgH=args.image_height,nc=1,nclass=len(args.alpha)+1,nh=256)
-    net.load_state_dict(torch.load(os.path.sep.join([args.data_root,'weights',args.model_name]),map_location=torch.device('cpu')))
+    model = CRNNClassify(imgH=args.image_height,nc=1,nclass=len(args.alpha)+1,nh=256)
+    model.load_state_dict(torch.load(join(args.data_root,'ckpts',args.model_name),map_location=torch.device('cpu')))
+    model.eval()
+    print('model :', model)
 
-    # split_lists = ['A','B','C','D','E']
-    # pred_result = {}
-    # image_root = 'D:\\PROJECT_TW\\git\\data\\ocr\\images'
-    # for split in split_lists:
-    #     file_lists = os.listdir(os.path.sep.join([image_root,f'Sample{split}']))
-    #     correct = 0
-    #     for idx, file_name in enumerate(file_lists):
-    #         try:
-    #             if idx % 100 == 0:
-    #                 print('{}, total {}, correct {}'.format(split, len(file_lists), correct))
-    #             image_path = os.path.sep.join([image_root,f'Sample{split}', file_name])
-    #             word = valid(net=net, image_path=image_path, 
-    #                 image_height=args.image_height,alpha=args.alpha)
-    #             # print(f'{file_name}', ' pred word ', word)
-    #             if word.upper() == split:
-    #                 correct += 1
+    dataset = lmdbDataset(root=args.data_root, split='valid',transform=ImgTransform(data_root=args.data_root))
 
-    #         except Exception as x:
-    #             # pass
-    #             print(x)
+    index = 43
 
-    #     pred_result[split] = {'total':len(file_lists), 'correct':correct}
-    # print('pred result:', pred_result)
+    image, target = dataset[index]
 
-    word = valid(net=net, image_path=r'D:\\PROJECT_TW\\git\\data\\tmp\\check_0.png', 
-                 image_height=args.image_height,alpha=args.alpha)    
-    print('word -->',word)
+    image = cv2.imread(join(args.data_root,'test_img', args.file_name), cv2.IMREAD_COLOR)
+
+    print('image :', image.shape)
+
+    valid(model=model, image=image, alpha=args.alpha)

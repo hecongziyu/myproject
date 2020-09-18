@@ -103,6 +103,9 @@ class ConvertFromInts(object):
 # 去文字白边
 class RemoveWhiteBoard(object):
     def __call__(self, image, labels):
+        if labels == 'z':
+            return image, labels
+            
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         # 2. 形态学变换的预处理，得到可以查找矩形的图片
         dilation = preprocess(gray)
@@ -118,7 +121,7 @@ class RemoveWhiteBoard(object):
 
 # 随机改变大小
 class RandomSize(object):
-    def __init__(self, min_radio=0.6, max_radio=1, min_size=900, min_height=24):
+    def __init__(self, min_radio=0.4, max_radio=1, min_size=900, min_height=32):
         self.min_radio = min_radio
         self.max_radio = max_radio
         self.min_height = min_height
@@ -127,7 +130,8 @@ class RandomSize(object):
         height, width, _ = image.shape
         min_radio = self.min_radio
         max_radio = self.max_radio
-        radio = random.uniform(min_radio, max_radio)
+        # radio = random.uniform(min_radio, max_radio)
+        radio = 0.2
         radio = max(radio, self.min_height/height)
         random_sel = np.random.randint(4)
         if random_sel == 0:
@@ -159,6 +163,7 @@ class SelectEmptyImage(object):
 
         if labels == 'z' and image is None:
             _image = self.use_img_lists[np.random.randint(len(self.use_img_lists))]
+
             # 将图片随机做翻转，后面实现 
 
             height, width, _ = _image.shape
@@ -221,6 +226,8 @@ class RandomBackGround(object):
         if len(self.bg_img_lists) == 0:
             return image, labels
 
+        if labels == 'z':
+            return image, labels
 
         if np.random.randint(5) in [1,2,0]:
             bg_img = self.bg_img_lists[np.random.randint(len(self.bg_img_lists))]
@@ -288,7 +295,55 @@ class RandomNoise(object):
             image = self.__gasuss_noise__(image, self.gas_mean, self.gas_var)
         return image, labels
 
+# # 随机扩展图片高度、宽度
+class RandomExpand(object):
+    def __init__(self, e_max_height=20, e_max_width=60):
+        self.e_max_width = e_max_width
+        self.e_max_height = e_max_height
 
+    def __call__(self, image, labels):
+        if labels == 'z':
+            return image, labels
+
+        random_sel = np.random.randint(6)
+        if random_sel in [0,1]:
+            return image, labels
+
+        height, width, _ = image.shape
+        exp_width = np.random.randint(1, self.e_max_width) + width
+        exp_height = np.random.randint(1,self.e_max_height) + height
+        image_ext = np.ones((exp_height, exp_width, image.shape[2]),dtype=image.dtype) * 255
+        x_pos = np.random.randint(0, exp_width-width)
+        y_pos = np.random.randint(0, exp_height-height)
+        image_ext[y_pos:y_pos+height, x_pos:x_pos+width,:] = image
+        return image_ext, labels
+
+
+class RandomBlur(object):
+    def __init__(self):
+        self.ksize = [3,5]
+
+    def mean_blur(self,image, a, b):
+        # (a,b)表示的卷积核[大小]  a代表横向上的模糊，b表示纵向上的模糊
+        dst = cv2.blur(image, (a, b))
+        return dst
+
+    def median_blur(self, image, ksize):
+        # 第二个参数是孔径的尺寸，一个大于1的奇数。
+        # 比如这里是5，中值滤波器就会使用5×5的范围来计算。
+        # 即对像素的中心值及其5×5邻域组成了一个数值集，对其进行处理计算，当前像素被其中值替换掉。
+        dst = cv2.medianBlur(image, ksize)
+        return dst
+
+    def __call__(self, image, labels):
+        r_idx = np.random.randint(5)
+        # print('----------------------------------blur idx :', r_idx)
+        if r_idx in [0,1]:
+            image = self.mean_blur(image, np.random.randint(1,6), np.random.randint(1,6))
+        elif r_idx in [2,3]:
+            image = self.median_blur(image, self.ksize[np.random.randint(len(self.ksize))])
+
+        return image, labels
 
 
 
@@ -300,9 +355,11 @@ class ImgTransform(object):
                 SelectEmptyImage(data_root=self.data_root),
                 RemoveWhiteBoard(),
                 RandomSize(),
-                RandomNoise(),
+                RandomExpand(),
                 RandomRotate(),
-                RandomBacbkGround(data_root=self.data_root),
+                RandomBackGround(data_root=self.data_root),
+                RandomNoise(),
+                RandomBlur(),
                 ConvertFromInts()
             ])
 
@@ -310,5 +367,23 @@ class ImgTransform(object):
     def __call__(self, image, labels):
         return self.augment(image, labels)
 
+# class ImgTransform(object):
+#     def __init__(self, data_root):
+#         self.data_root = data_root
+
+#         self.augment = Compose([
+#                 SelectEmptyImage(data_root=self.data_root),
+#                 RemoveWhiteBoard(),
+#                 RandomExpand(),
+#                 RandomSize(),
+#                 RandomNoise(),
+#                 RandomRotate(),
+#                 RandomBackGround(data_root=self.data_root),
+#                 # ConvertFromInts()
+#             ])
+
+
+#     def __call__(self, image, labels):
+#         return self.augment(image, labels)
 
 
