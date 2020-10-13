@@ -69,9 +69,11 @@ class NERPkuseg:
 
     def __call__(self, text):
         tokens = self.seg.cut(text)
-        print('seg text lists:', tokens)
-        token_list = [x[0] for x in tokens if x[1] != 'w']
-        token_pos_list = [x[1] for x in tokens if x[1] != 'w']
+        # print('seg text lists:', tokens)
+        # token_list = [x[0] for x in tokens if x[1] != 'w']
+        # token_pos_list = [x[1] for x in tokens if x[1] != 'w']
+        token_list = [x[0] for x in tokens]
+        token_pos_list = [x[1] for x in tokens]
         return (token_list, token_pos_list)
 
     def __adjust_tokens__(self, tokens, token_pos_list):
@@ -124,7 +126,7 @@ class NERecognition:
         self.dict_file = dict_file
         self.rec_map = {
             # 'synonyms':NERSynonyms(dict_file=self.dict_file,include_token=['n','v']),
-            'pkuseg':NERPkuseg(dict_file=self.dict_file,include_token=['n','v','nkn'])
+            'pkuseg':NERPkuseg(dict_file=self.dict_file,include_token=['n','v','nunk','nkn','p','b','m'])
         }
         self.seg = self.rec_map[seg_name]
         self.entity_aligment = entity_aligment
@@ -177,7 +179,6 @@ class NERecognition:
 
         # 在已有词典进行查找, 对名词进行分类标注
         entity_list = [(x, self.entity_classify(x, token_pos_list[idx])) for idx, x in enumerate(tokens) ]
-        print('entity lists :', entity_list)
         logger.debug('entity lists : %s ' % len(entity_list))
 
 

@@ -9,6 +9,48 @@ import six
 import torch
 import os
 from os.path import join
+class adjustCollate(object):
+    def __init__(self, imgH=32, keep_ratio=True):
+        self.imgH = imgH
+        self.keep_ratio = keep_ratio
+        self.toTensor = transforms.ToTensor()
+
+    def __resize__(self,image):
+        image_resize = image.copy()
+
+        if image.shape[0] != 32:
+            percent = float(self.imgH) / image_resize.shape[0]
+            image_resize = cv2.resize(image_resize,(0,0), fx=percent, fy=percent, interpolation = cv2.INTER_NEAREST)
+        return image_resize
+
+    def __normalize__(self,img):
+        # 注意一定需要astype为np.uint8, to tensor 才会认为这是一张图片
+        # img = img.astype(np.uint8)
+        img = self.toTensor(img)
+        # img.sub_(0.5).div_(0.5)
+        return img
+
+
+    def __call__(self, batch):
+        images, labels = zip(*batch)
+        images = [self.__resize__(image) for image in images]
+        PADDING_CONSTANT = 255
+        assert len(set([b.shape[0] for b in images])) == 1
+        # assert len(set([b.shape[2] for b in images])) == 1
+        if len(images) > 0:
+            dim0 = images[0].shape[0]
+            dim1 = max([b.shape[1] for b in images])
+            # dim2 = images[0].shape[2]
+            images_padding = np.full((len(images), dim0, dim1), PADDING_CONSTANT).astype(np.uint8)
+
+            for idx, img in enumerate(images_padding):
+                # print('img shape:', img.shape, ' images shape:', images[idx].shape)
+                img[:,:images[idx].shape[1]] = images[idx]
+            images = images_padding
+        images = [self.__normalize__(image) for image in images]
+        # print(images[0])
+        images = torch.cat([t.unsqueeze(0) for t in images], 0)
+        return images, labels
 
 
 class OcrFileDataset(Dataset):
@@ -55,11 +97,32 @@ class OcrFileDataset(Dataset):
 
 
     def __len__(self):
-        return 100
+        number = 5000
+        if self.split == 'train':
+            return number
+        else:
+            return number // 10
 
     def __getitem__(self, index):
-        index = (index % len(self.train_dataset))
-        image, label = self.train_dataset(index)
+        rsel = np.random.randint(6)
+        if rsel in [0,1,2,3]:
+            index = (index % len(self.train_dataset))
+            bg_img = self.bg_image[np.random.randint(len(self.bg_image))]
+            image, label = self.train_dataset[index]
+        elif rsel == 4:
+            index = (index % len(self.noise_dataset))
+            bg_img = self.bg_image[np.random.randint(len(self.bg_image))]
+            image, label = self.noise_dataset[index]
+        else:
+            bg_img = self.bg_image[np.random.randint(len(self.bg_image))]
+            image = bg_img
+            label = 'bz'
+
+        if self.transform:
+
+            image, label, _ = self.transform(image, label, bg_img)
+        if label == 'bz':
+            label = 'z'
         return image, label
         # # assert index <= len(self), 'index range error'
         # if index < self.nSamples:
@@ -82,7 +145,7 @@ if __name__ == '__main__':
     from functools import partial
     import time
     from torch.utils.data.sampler import SubsetRandomSampler
-    from normal_lmdb_transform import ImgTransform
+    from normal_file_transform import ImgTransform
     from torch.utils.data import DataLoader
     import torchvision
 
@@ -111,7 +174,7 @@ if __name__ == '__main__':
     dataset_size = len(dataset)
 
     print('dataset size:', dataset_size)
-    random_sel = np.random.randint(0 , len(dataset), 5).tolist()
+    random_sel = np.random.randint(0 , len(dataset), 1000).tolist()
 
     # for ridx, idx in  enumerate(list(range(4900, 5020))):
     for ridx, idx in  enumerate(random_sel):
@@ -120,7 +183,7 @@ if __name__ == '__main__':
 
         # print(idx , '--->', ' image shape:', image.shape)
         # print('target:', target.strip())
-        cv2.imwrite(os.path.sep.join([args.data_root,'valid_img',f'{ridx}_{target}.png']),image)
+        cv2.imwrite(os.path.sep.join([args.data_root,'valid_img',f'{ridx}_{label}.png']),image)
         
 
 

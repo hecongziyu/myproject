@@ -78,7 +78,7 @@ class MaskQRImage(object):
         self.qr_alpha_min = qr_alpha_min
 
 
-    def __mask_img__(self, bg_img, image, mask_pos, is_origin=False):
+    def __mask_img__(self, bg_img, qr_img, mask_pos, is_origin=False):
         '''
         在背景图上面粘贴二维码识别图片
         is_origin 表示是否是原始图片
@@ -109,15 +109,87 @@ class MaskQRImage(object):
 
 
 
+    # 随机选择QR二维码位置
+    def __random_qr_pos__(self, bg_img, qr_img, boxes, sel_num=4):
+        '''
+        处理流程：
+        1、选择区域， 如果boxes包含值，则在boxes point周边256 * 256区域进行选择
+                       --------否则选择bg_img四角 300 * 300 的区域进行选择
+        2、检测选择区域是否与已有区域重复，通过与boxes已有区域进行判断
+        3、随机删除boxes已有QR的位置，并进行填充
+        '''
 
-
-    def __call__(self, image, labels):
-        height, width, _ = image.shape
-
-        if np.random.randint(4) in [0,1,2]:
+        # 得到与现有QR位置不相交的位置
+        def __get_not_intersects__pos__(x_pos_range, y_pos_range, img_size,used_pos_lists):
+            height, width = img_size
+            new_pos = None
+            if x_pos_range[1] > x_pos_range[0] and y_pos_range[1] > y_pos_range[0]:
+                r_pos_lists = [(np.random.randint(x_pos_range[0], x_pos_range[1]), np.random.randint(y_pos_range[0], y_pos_range[1])) for _ in range(10)]
+                # r_pos_lists = [(x[0] - width, x[1] - height, x[1] + width, y1 + height ) for x in r_center_pos_lists]
+                for idx, (r_x, r_y) in enumerate(r_pos_lists):
+                    r_box  = [r_x, r_y, r_x+width, r_y+height, 0]
+                    r_box_check = [intersects(r_box, x) for x in used_pos_lists]
+                    # 判断当前随机的位置是否与已有的位置有重合
+                    if not any(r_box_check):
+                        new_pos = r_box
+                        break
+            return new_pos
             
 
-        return image,labels
+        height, width, _ = bg_img.shape
+        q_height, q_width, _ = qr_img.shape
+
+        box_pos_list = []
+        if boxes.shape[0] == 1 and boxes[:-4] == -1:
+            box_pos_list = [[150,150,150,150,0],[150, height-150, 150, height-150,0], 
+                            [width-150, 150, width-150, 150,0],[width-150, height-150, width-150, height-150]]
+        else:
+            box_pos_list = boxes.tolist()
+
+        # 已占用的位置信息
+        used_box_pos_lists = box_pos_list
+
+        sel_pos_list = []
+        for idx in range(sel_num):
+            box = box_pos_list[np.random.randint(len(box_pos_list))]
+            x0,y0,x1,y1,_ = box
+
+            center_x_pos, center_y_pos = x0 + (x1-x0) // 2  , y0 + (y1-y0) // 2
+
+            sel_pos = __get_not_intersects__pos__(x_pos_range=(max(10, center_x_pos-128),min(center_x_pos + 128, width - 10 - q_width)),
+                                                  y_pos_range=(max(10, center_y_pos-128), min(center_y_pos + 128, height - 10 - q_height)),
+                                                  img_size = (q_height,q_width),
+                                                  used_pos_lists = used_box_pos_lists)
+
+            if sel_pos:
+                sel_pos_list.append((sel_pos[0], sel_pos[1]))
+                used_box_pos_lists.append(sel_pos)
+
+        boxes = np.array(used_box_pos_lists)
+
+        return bg_img, boxes, sel_pos_list
+
+
+    def __call__(self, img, qr_img, boxes):
+        height, width, _ = img.shape
+        q_height, q_width, _ = qr_img.shape
+        is_origin = True if q_width == 70 and q_height == 70 else False
+
+        # 随机修改QR图片大小
+        qr_img = randomQrSize(qr_img, is_origin=is_origin)
+
+        img, boxes, sel_pos_list = self.__random_qr_pos__(img, qr_img, boxes, np.random.randint(3))
+
+        for sel_pos in sel_pos_list:
+            x_pos, y_pos = sel_pos
+            # 在背景图上面粘贴二维码识别图片
+            img = self.__mask_img__(img, qr_img, (x_pos, y_pos),is_origin=is_origin)
+            # boxes = np.r_[boxes,np.array([[x_pos,y_pos,x_pos+q_width,y_pos+q_height, 0]])]
+
+        # if idx > 1:
+        if boxes.shape[0] > 1:
+            boxes = boxes[np.where(boxes[:,4] != -1)]
+        return img,qr_img, boxes
 
 
 # https://blog.csdn.net/qq_38395705/article/details/106311905?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3.channel_param&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3.channel_param

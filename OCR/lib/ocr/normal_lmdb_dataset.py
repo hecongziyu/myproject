@@ -114,6 +114,7 @@ class lmdbDataset(Dataset):
 
     def __getitem__(self, index):
         index = (index % (self.nSamples + self.nSamples // 2))
+        # index = np.random.randint(0, 9)
         # assert index <= len(self), 'index range error'
         if index < self.nSamples:
             with self.env.begin(write=False) as txn:

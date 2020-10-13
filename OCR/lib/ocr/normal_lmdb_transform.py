@@ -9,19 +9,13 @@ import os
 
 def preprocess(gray):
     # 1. Sobel算子，x方向求梯度
-    sobel = cv2.Sobel(gray, cv2.CV_8U, 1, 0, ksize = 5)
-    # 2. 二值化
-    ret, binary = cv2.threshold(sobel, 0, 255, cv2.THRESH_OTSU+cv2.THRESH_BINARY)
-    # 3. 膨胀和腐蚀操作的核函数
-    element1 = cv2.getStructuringElement(cv2.MORPH_RECT, (19, 9))
-    element2 = cv2.getStructuringElement(cv2.MORPH_RECT, (8, 5))
-    # 4. 膨胀一次，让轮廓突出
-    dilation = cv2.dilate(binary, element2, iterations = 1)
-    # 5. 腐蚀一次，去掉细节，如表格线等。注意这里去掉的是竖直的线
-    # erosion = cv2.erode(dilation, element1, iterations = 1)
-    # 6. 再次膨胀，让轮廓明显一些
-    # dilation2 = cv2.dilate(erosion, element2, iterations = 1)
-    return dilation
+    img = gray.copy()
+    blur = cv2.GaussianBlur(img, (7,3), 0)
+    thresh = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,51,10)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7,3))
+    dilate = cv2.dilate(thresh, kernel, iterations=2)    
+    return dilate
+    
 
 def findTextRegion(img):
     region = []
@@ -121,7 +115,7 @@ class RemoveWhiteBoard(object):
 
 # 随机改变大小
 class RandomSize(object):
-    def __init__(self, min_radio=0.4, max_radio=1, min_size=900, min_height=32):
+    def __init__(self, min_radio=0.3, max_radio=0.85, min_size=900, min_height=28):
         self.min_radio = min_radio
         self.max_radio = max_radio
         self.min_height = min_height
@@ -130,16 +124,16 @@ class RandomSize(object):
         height, width, _ = image.shape
         min_radio = self.min_radio
         max_radio = self.max_radio
-        # radio = random.uniform(min_radio, max_radio)
-        radio = 0.2
+        radio = random.uniform(min_radio, max_radio)
+        # radio = 0.2
         radio = max(radio, self.min_height/height)
         random_sel = np.random.randint(4)
         if random_sel == 0:
             image = cv2.resize(image.copy(),(0,0), fx=radio,fy=radio, interpolation=cv2.INTER_AREA)
         elif random_sel == 1:
-            image = cv2.resize(image.copy(),(0,0), fx=radio,fy=radio*1.5, interpolation=cv2.INTER_AREA)
+            image = cv2.resize(image.copy(),(0,0), fx=radio,fy=radio*1.2, interpolation=cv2.INTER_AREA)
         elif random_sel == 2:
-            image = cv2.resize(image.copy(),(0,0), fx=radio*1.5,fy=radio, interpolation=cv2.INTER_AREA)
+            image = cv2.resize(image.copy(),(0,0), fx=radio*1.2,fy=radio, interpolation=cv2.INTER_AREA)
         return image,labels
 
 
@@ -166,6 +160,9 @@ class SelectEmptyImage(object):
 
             # 将图片随机做翻转，后面实现 
 
+            degree = np.random.randint(0,180)
+            _image,_ = rotate_image(_image, degree)
+
             height, width, _ = _image.shape
             x_pos = np.random.randint(0, width - 20)
             y_pos = np.random.randint(0, height - 20)
@@ -180,14 +177,14 @@ class SelectEmptyImage(object):
 # 随机旋转图片
 class RandomRotate(object):
     # 随机旋转QR图片
-    def __init__(self, degree_range=(-10,10)):
+    def __init__(self, degree_range=(-5,5)):
         self.degree_range = degree_range
 
     def __call__(self, img, labels):
-        if np.random.randint(2) == 0:
-            degree = np.random.uniform(self.degree_range[0], self.degree_range[1])
-            border_value = (255,255,255)
-            img, _ = rotate_image(img, degree,border_value)
+        # if np.random.randint(2) == 0:
+        degree = np.random.uniform(self.degree_range[0], self.degree_range[1])
+        border_value = (255,255,255)
+        img, _ = rotate_image(img, degree,border_value)
         return img, labels
 
 # 增加背景图片或将图片直接转成背景图片，但需要将labels同时替换成z符号
@@ -212,11 +209,40 @@ class RandomBackGround(object):
         '''
         # x_pos, y_pos = mask_pos
         height, width, _ = image.shape
-        bg_img = cv2.resize(bg_img.copy(), (width,height), interpolation=cv2.INTER_AREA)
+        min_exp_height = height + 1 + height * 0.1
+        max_exp_height = height + 1 + height * 1.2
+        min_exp_width  = width + 1 + width * 0.1
+        max_exp_width = width + 1 + width * 1.2
+
+        bg_height, bg_width, _ = bg_img.shape
+
+        height_radio = np.random.uniform(min_exp_height/bg_height, max_exp_height/bg_height)
+        width_radio = np.random.uniform(min_exp_width/bg_width, max_exp_width/bg_width)
+
+        bg_clip_height = int(bg_height*height_radio)
+        bg_clip_width = int(bg_width*width_radio)
+        if bg_clip_height > bg_height and bg_clip_width > bg_clip_width:
+            bg_clip_x_pos = np.random.randint(0, bg_width - bg_clip_width)
+            bg_clip_y_pos = np.random.randint(0, bg_height - bg_clip_height)
+            _bg_img = bg_img[bg_clip_y_pos:bg_clip_y_pos+bg_clip_height, bg_clip_x_pos:bg_clip_x_pos+bg_clip_width,:]
+        else:
+            _bg_img = cv2.resize(bg_img.copy(),(0,0), fx=width_radio, fy=height_radio, interpolation=cv2.INTER_AREA)
+
+        bg_height, bg_width, _ = _bg_img.shape
+        x_pos  = np.random.randint(0, bg_width - image.shape[1])
+        y_pos  = np.random.randint(0, bg_height - image.shape[0])
+        # print('xpos :', x_pos, ' ypos:', y_pos)
+        mix_image = np.ones(_bg_img.shape, _bg_img.dtype) * 255
+        mix_image[y_pos:y_pos+height, x_pos:x_pos+width,:] = image        
+
         alpha_min = self.alpha_min
-        alpha_1 = np.random.uniform(alpha_min, 0.95)
-        _img = cv2.addWeighted(image, alpha_1, bg_img, 1-alpha_1, 0)
-        return _img
+
+        alpha_1 = np.random.uniform(alpha_min, 0.8)
+        mix_image = cv2.addWeighted(mix_image, alpha_1, _bg_img, 1-alpha_1, 0)
+
+        # _bg_img[y_pos:y_pos + height, x_pos: x_pos + width, ] = _img
+        
+        return mix_image
 
 
     def __call__(self, image, labels):
@@ -242,7 +268,7 @@ class RandomBackGround(object):
 
 # 随机增加噪点
 class RandomNoise(object):
-    def __init__(self, sp_prob=0.015, gas_mean=0, gas_var=0.001):
+    def __init__(self, sp_prob=0.005, gas_mean=0, gas_var=0.001):
         self.sp_prob = sp_prob
         self.gas_mean = gas_mean
         self.gas_var = gas_var
@@ -297,7 +323,7 @@ class RandomNoise(object):
 
 # # 随机扩展图片高度、宽度
 class RandomExpand(object):
-    def __init__(self, e_max_height=20, e_max_width=60):
+    def __init__(self, e_max_height=0.3, e_max_width=0.3):
         self.e_max_width = e_max_width
         self.e_max_height = e_max_height
 
@@ -310,8 +336,8 @@ class RandomExpand(object):
             return image, labels
 
         height, width, _ = image.shape
-        exp_width = np.random.randint(1, self.e_max_width) + width
-        exp_height = np.random.randint(1,self.e_max_height) + height
+        exp_width = np.random.randint(1, int(self.e_max_width * width)) + width
+        exp_height = np.random.randint(1, int(self.e_max_height * height)) + height
         image_ext = np.ones((exp_height, exp_width, image.shape[2]),dtype=image.dtype) * 255
         x_pos = np.random.randint(0, exp_width-width)
         y_pos = np.random.randint(0, exp_height-height)
@@ -336,12 +362,10 @@ class RandomBlur(object):
         return dst
 
     def __call__(self, image, labels):
-        r_idx = np.random.randint(5)
+        r_idx = np.random.randint(4)
         # print('----------------------------------blur idx :', r_idx)
-        if r_idx in [0,1]:
-            image = self.mean_blur(image, np.random.randint(1,6), np.random.randint(1,6))
-        elif r_idx in [2,3]:
-            image = self.median_blur(image, self.ksize[np.random.randint(len(self.ksize))])
+        if r_idx in [0,1,2]:
+            image = self.mean_blur(image, np.random.randint(1,8), np.random.randint(1,8))
 
         return image, labels
 
@@ -355,7 +379,7 @@ class ImgTransform(object):
                 SelectEmptyImage(data_root=self.data_root),
                 RemoveWhiteBoard(),
                 RandomSize(),
-                RandomExpand(),
+                # RandomExpand(),
                 RandomRotate(),
                 RandomBackGround(data_root=self.data_root),
                 RandomNoise(),
