@@ -12,13 +12,13 @@ import pickle
 from nltk.corpus import stopwords
 # from Snowball.Seed import Seed
 from seed import Seed
-# from Snowball.ReVerb import Reverb
+from reverb import Reverb
+import VectorSpaceModel
 
 
 class Config(object):
 
     def __init__(self, config_file, seeds_file, negative_seeds, sentences_file, similarity, confidance):
-
         self.seed_tuples = set()
         self.negative_seed_tuples = set()
         self.e1_type = None
@@ -29,6 +29,7 @@ class Config(object):
         # self.reverb = Reverb()
 
         for line in fileinput.input(config_file):
+            print('line ---> ', line)
             if line.startswith("#") or len(line) == 1:
                 continue
 
@@ -106,20 +107,20 @@ class Config(object):
         print("iteration wUpdt      :", self.wUpdt)
         print("\n")
 
-        # try:
-        #     os.path.isfile("vsm.pkl")
-        #     f = open("vsm.pkl", "rb")
-        #     print("\nLoading tf-idf model from disk...")
-        #     self.vsm = pickle.load(f)
-        #     f.close()
+        try:
+            os.path.isfile("vsm.pkl")
+            f = open("vsm.pkl", "rb")
+            print("\nLoading tf-idf model from disk...")
+            self.vsm = pickle.load(f)
+            f.close()
 
-        # except IOError:
-        #     print("\nGenerating tf-idf model from sentences...")
-        #     self.vsm = VectorSpaceModel.VectorSpaceModel(sentences_file, self.stopwords)
-        #     print("\nWriting generated model to disk...")
-        #     f = open("vsm.pkl", "wb")
-        #     pickle.dump(self.vsm, f)
-        #     f.close()
+        except IOError:
+            print("\nGenerating tf-idf model from sentences...")
+            self.vsm = VectorSpaceModel.VectorSpaceModel(sentences_file, self.stopwords)
+            print("\nWriting generated model to disk...")
+            f = open("vsm.pkl", "wb")
+            pickle.dump(self.vsm, f)
+            f.close()
 
     def read_seeds(self, seeds_file):
         with open(seeds_file, 'r', encoding='utf-8') as f:

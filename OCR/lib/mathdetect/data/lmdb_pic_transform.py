@@ -7,26 +7,27 @@ from numpy import random
 
 def preprocess(gray):
     # 1. Sobel算子，x方向求梯度
-    sobel = cv2.Sobel(gray, cv2.CV_8U, 1, 0, ksize = 3)
+    sobel = cv2.Sobel(gray, cv2.CV_8U, 1, 0, ksize = 5)
     # 2. 二值化
     ret, binary = cv2.threshold(sobel, 0, 255, cv2.THRESH_OTSU+cv2.THRESH_BINARY)
     # 3. 膨胀和腐蚀操作的核函数
-    element1 = cv2.getStructuringElement(cv2.MORPH_RECT, (30, 9))
-    element2 = cv2.getStructuringElement(cv2.MORPH_RECT, (24, 6))
+    element1 = cv2.getStructuringElement(cv2.MORPH_RECT, (19, 9))
+    element2 = cv2.getStructuringElement(cv2.MORPH_RECT, (8, 5))
     # 4. 膨胀一次，让轮廓突出
     dilation = cv2.dilate(binary, element2, iterations = 1)
     # 5. 腐蚀一次，去掉细节，如表格线等。注意这里去掉的是竖直的线
-    erosion = cv2.erode(dilation, element1, iterations = 1)
+    # erosion = cv2.erode(dilation, element1, iterations = 1)
     # 6. 再次膨胀，让轮廓明显一些
-    dilation2 = cv2.dilate(erosion, element2, iterations = 3)
-    return dilation2
+    # dilation2 = cv2.dilate(erosion, element2, iterations = 1)
+    return dilation
 
 def findTextRegion(img):
     region = []
+    height,width  = img.shape
  
     # 1. 查找轮廓
     contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    box = None
+    box_lists = []
     # 2. 筛选那些面积小的
     for i in range(len(contours)):
         cnt = contours[i]
@@ -34,12 +35,8 @@ def findTextRegion(img):
         area = cv2.contourArea(cnt) 
 
         # 面积小的都筛选掉
-        if(area < 1000):
+        if(area < 30):
             continue
- 
-        # 轮廓近似，作用很小
-        epsilon = 0.001 * cv2.arcLength(cnt, True)
-        approx = cv2.approxPolyDP(cnt, epsilon, True)
  
         # 找到最小的矩形，该矩形可能有方向
         rect = cv2.minAreaRect(cnt)
@@ -53,7 +50,7 @@ def findTextRegion(img):
         y0 = np.min(box[:,1])
         y1 = np.max(box[:,1])
 
-        box = [x0,y0,x1, y1]
+        box_lists.append([x0,y0,x1, y1])
         # 计算高和宽
         # height = abs(box[0][1] - box[2][1])
         # width = abs(box[0][0] - box[2][0])
@@ -62,7 +59,19 @@ def findTextRegion(img):
         # if(height > width * 1.2):
         #     continue
         # region.append(box)
+    box_lists = np.array(box_lists)
+    # print('boxes lists :', box_lists)
+    x0 = max(np.min(box_lists[:,0]) - 5,0)
+    y0 = max(np.min(box_lists[:,1]) - 5,0)
+    x1 = min(np.max(box_lists[:,2]) + 5, width)
+    y1 = min(np.max(box_lists[:,3]) + 5, height)
+
+    box = (x0,y0,x1,y1)
+
     return box
+
+
+
 
 class Compose(object):
     def __init__(self, transforms):
@@ -83,22 +92,15 @@ class RemoveWhiteBoard(object):
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         # 2. 形态学变换的预处理，得到可以查找矩形的图片
         dilation = preprocess(gray)
+
  
         # 3. 查找和筛选文字区域
         text_boxes = findTextRegion(dilation)
         if text_boxes is not None:
             x0,y0,x1, y1 = text_boxes
-
-            x0 = min(x0, np.min(boxes[:,0]))
-            y0 = min(y0, np.min(boxes[:,1]))
-            x1 = max(x1, np.max(boxes[:,2]))
-            y1 = max(y1, np.max(boxes[:,3]))
-
             rimage = image[y0:y1, x0:x1]
-
             boxes[:,(0,2)] -= x0
             boxes[:,(1,3)] -= y0
-
             return rimage, boxes, labels
         else:
             return image, boxes, labels
@@ -129,6 +131,7 @@ class AdjustSize:
         self.max_width = max_width
 
     def __call__(self, image, boxes=None, labels=None):
+        # print('resize img shape:', image.shape)
         if image.shape[1] > self.max_width or image.shape[0] > self.max_width:
             image = image.astype(np.uint8)
             radio = min(self.max_width / image.shape[1], self.max_width / image.shape[0])
@@ -144,16 +147,16 @@ class Mask2Windows:
 
     def __call__(self, image, boxes=None, labels=None):
         win_img = np.full((self.window, self.window, image.shape[2]), 255)
-        if random.randint(3) == 0:
-            win_img[0:image.shape[0],0:image.shape[1],:] = image.copy()
-        else:
-            # 原图在window上面随机偏移位置
-            xl = random.randint(self.window - image.shape[1])
-            yl = random.randint(0, min(20,self.window - image.shape[0])+1)
-            win_img[yl:yl+image.shape[0], xl:xl+image.shape[1],:] = image.copy()
-            boxes = boxes.copy()
-            boxes[:,(0,2)] += xl
-            boxes[:,(1,3)] += yl
+        # if random.randint(3) == 0:
+        win_img[0:image.shape[0],0:image.shape[1],:] = image.copy()
+        # else:
+        #     # 原图在window上面随机偏移位置
+        #     xl = random.randint(self.window - image.shape[1])
+        #     yl = random.randint(0, min(20,self.window - image.shape[0]))
+        #     win_img[yl:yl+image.shape[0], xl:xl+image.shape[1],:] = image.copy()
+        #     boxes = boxes.copy()
+        #     boxes[:,(0,2)] += xl
+        #     boxes[:,(1,3)] += yl
         return win_img, boxes, labels
 
 
@@ -172,8 +175,8 @@ class FormulaTransform(object):
         self.max_width = max_width
         self.size = size
         self.augment = Compose([
-            #RemoveWhiteBoard(),
-            RandomSize(min_radio=0.6, max_radio=1),
+            # RemoveWhiteBoard(),
+            # RandomSize(min_radio=0.9, max_radio=1),
             AdjustSize(max_width=self.max_width),
             Mask2Windows(window=self.window),
             ConvertFromInts(),
@@ -182,5 +185,22 @@ class FormulaTransform(object):
 
     def __call__(self, img, boxes, labels):
         return self.augment(img, boxes, labels)    
+
+class PicTransform(object):
+    def __init__(self, window=1200, max_width=1200, size=300):
+        self.window = window
+        self.max_width = max_width
+        self.size = size
+        self.augment = Compose([
+            # RemoveWhiteBoard(),
+            # RandomSize(min_radio=0.9, max_radio=1),
+            AdjustSize(max_width=self.max_width),
+            Mask2Windows(window=self.window),
+            ConvertFromInts(),
+            StructResize(size=self.size)
+        ])
+
+    def __call__(self, img, boxes, labels):
+        return self.augment(img, boxes, labels)            
 
 
