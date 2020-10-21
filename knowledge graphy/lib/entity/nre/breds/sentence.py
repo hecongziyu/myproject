@@ -5,7 +5,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import re
-from nltk import word_tokenize
+from .tokens import word_tokenize
 
 # regex for simple tags, e.g.:
 # <PER>Bill Gates</PER>
@@ -130,15 +130,15 @@ class Sentence:
 
                     #DEBUG
                     """
-                    print _sentence
-                    print matches[x].group()
-                    print matches[x+1].group()
-                    print "BEF", before
-                    print "BET", between
-                    print "AFT", after
-                    print "ent1", ent1, arg1type
-                    print "ent2", ent2, arg2type
-                    print "==========================================\n"
+                    print(_sentence)
+                    print(matches[x].group())
+                    print(matches[x+1].group())
+                    print("BEF", before)
+                    print("BET", between)
+                    print("AFT", after)
+                    print("ent1", ent1, arg1type)
+                    print("ent2", ent2, arg2type)
+                    print("==========================================\n")
                     """
 
                     if ent1 == ent2:
@@ -147,7 +147,7 @@ class Sentence:
                     if e1_type is not None and e2_type is not None:
                         # restrict relationships by the arguments semantic types
                         if arg1type == e1_type and arg2type == e2_type:
-
+                            print('add relateion -------------------------------')
                             rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type,
                                                _type=None)
                             self.relationships.add(rel)

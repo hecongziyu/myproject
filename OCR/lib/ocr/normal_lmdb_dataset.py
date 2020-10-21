@@ -182,14 +182,15 @@ if __name__ == '__main__':
     dataset_size = len(dataset)
 
     print('dataset size:', dataset_size)
-    random_sel = np.random.randint(0 , len(dataset), 300).tolist()
+    # random_sel = np.random.randint(0 , len(dataset), 500).tolist()
+    random_sel = range(100)
 
     # for ridx, idx in  enumerate(list(range(4900, 5020))):
     for ridx, idx in  enumerate(random_sel):
         image, target = dataset[idx]
         image = image.astype(np.uint8)
-        print(idx , '--->', ' image shape:', image.shape)
-        print('target:', target.strip())
+        # print(idx , '--->', ' image shape:', image.shape)
+        # print('target:', target.strip())
         cv2.imwrite(os.path.sep.join([args.data_root,'valid_img',f'{ridx}_{target}.png']),image)
         
         # print('target:', [vocab.sign2id(x,3) for x in target.strip()])

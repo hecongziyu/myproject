@@ -6,8 +6,9 @@ __email__ = "dsbatista@inesc-id.pt"
 
 import sys
 
-from nltk import pos_tag, word_tokenize
-from reverb import Reverb
+from nltk import pos_tag
+from .reverb import Reverb
+from .tokens import word_tokenize
 
 
 class Tuple(object):
@@ -76,11 +77,11 @@ class Tuple(object):
 
     def create_vector(self, text):
         vect_ids = self.config.vsm.dictionary.doc2bow(self.tokenize(text))
+        # print('tuples create vector :','texts :', text, ' vect_ids :', vect_ids, ' vector:', self.config.vsm.tf_idf_model[vect_ids])
         return self.config.vsm.tf_idf_model[vect_ids]
 
     def tokenize(self, text):
-        return [word for word in word_tokenize(text.lower())
-                if word not in self.config.stopwords]
+        return [word for word in word_tokenize(text.lower()) if word not in self.config.stopwords]
 
     def construct_pattern_vector(self, pattern_tags, config):
         # construct TF-IDF representation for each context

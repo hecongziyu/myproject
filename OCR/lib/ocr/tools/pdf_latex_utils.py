@@ -20,8 +20,14 @@ from matplotlib import pyplot as plt
 import matplotlib
 matplotlib.use('TkAgg')
 
+# 不带数学公式
+def gen_latex_pdf_normal(data_root, file_name, formulas, latex_box_color='red'):
+    doc_text = [r'\colorbox{white} {\songti \large %s} \\' % x for x in formulas]
+    doc_text_color = [r'\colorbox{red} {\songti \large %s} \\' % x for x in formulas]
+    gen_pdf(data_root, file_name, doc_text)
+    gen_pdf(data_root, file_name + '_color', doc_text_color)
 
-
+# 带数学公式
 def gen_latex_pdf(data_root, file_name, formulas, latex_box_color='red'):
     # print('准备数据')
     # doc_text_color = [r'$$ \colorbox{red} {$ %s $}  $$' % x for x in formulas]

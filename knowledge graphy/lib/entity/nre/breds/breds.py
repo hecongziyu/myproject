@@ -7,10 +7,13 @@ from collections import defaultdict
 from nltk import word_tokenize
 from gensim.matutils import cossim
 
-from sentence import Sentence
-from config import Config
-from pattern import Pattern
-from tuples import Tuple
+from .sentence import Sentence
+from .config import Config
+from .pattern import Pattern
+from .tuples import Tuple
+from .seed import Seed
+
+PRINT_PATTERNS = True
 
 class BREDS(object):
 
@@ -53,11 +56,12 @@ class BREDS(object):
 
                 for rel in sentence.relationships:
                     if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
-                        print('rel between :', rel.between)
+
+                        # print('rel between :', rel.between)
                         bef_tokens = word_tokenize(rel.before)
                         bet_tokens = word_tokenize(rel.between)
                         aft_tokens = word_tokenize(rel.after)
-                        print('rel between token :', bet_tokens)
+                        # print('rel between token :', bet_tokens)
                         if not (bef_tokens == 0 and bet_tokens == 0 and aft_tokens == 0):
                             # print('rel :', rel.ent1, ',', rel.ent2, ',', rel.sentence, ',', rel.before)
                             t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, 
@@ -72,6 +76,9 @@ class BREDS(object):
             f.close()
 
     def init_bootstrap(self, tuples):
+
+        print('init boot strap start .....')
+
         if tuples is not None:
             f = open(tuples, "rb")
             print("Loading pre-processed sentences", tuples)
@@ -106,14 +113,15 @@ class BREDS(object):
             print("\nClustering matched instances to generate patterns")
             self.cluster_tuples(self, matched_tuples)
 
-            # for p in self.patterns:
-            #     print('len tuples:', len(p.tuples))
+
 
             # Eliminate patterns supported by less than 'min_pattern_support' tuples
 
             new_patterns = [p for p in self.patterns if len(p.tuples) >= self.config.min_pattern_support]
             self.patterns = new_patterns
           
+            for p in self.patterns:
+                print('len tuples:', len(p.tuples), 'sentence :', '\n'.join([x.sentence for x in p.tuples]))
 
             print("\n", len(self.patterns), "patterns generated")
             if i == 0 and len(self.patterns) == 0:
@@ -177,7 +185,7 @@ class BREDS(object):
                 print("\nPatterns:")
                 for p in self.patterns:
                     p.merge_tuple_patterns()
-                    print("Patterns:", len(p.tuples))
+                    print("Patterns:", len(p.tuples), ' sentence:', '|||'.join([x.sentence for x in p.tuples]))
                     print("Positive", p.positive)
                     print("Negative", p.negative)
                     print("Unknown", p.unknown)
@@ -258,6 +266,9 @@ class BREDS(object):
             for w in range(0, len(self.patterns), 1):
                 extraction_pattern = self.patterns[w]
                 score = self.similarity(t, extraction_pattern)
+                # print('t bet vector:', t.bet_vector, ' pattern vetor:', extraction_pattern.centroid_bet)
+                # print('t sentence :', t.sentence, ' score :', score, ' patterns sentence:', '||'.join([x.sentence for x in extraction_pattern.tuples]))
+
                 if score > max_similarity:
                     max_similarity = score
                     max_similarity_cluster_index = w
@@ -308,37 +319,3 @@ class BREDS(object):
 
 
 
-if __name__ == '__main__':
-    # if len(sys.argv) != 7:
-    #     print("\nBREDS.py parameters sentences positive_seeds negative_seeds "
-    #           "similarity confidence\n")
-    #     sys.exit(0)
-    # else:
-    from os.path import join
-    data_root = r'D:\PROJECT_TW\git\data\kg\entity\nre'
-    configuration = 'parameters.cfg'
-    sentences_file = 'sentence_file.txt'
-    seeds_file = 'seeds_positive.txt'
-    negative_seeds = 'seeds_negative.txt'
-    similarity = 0.5
-    confidance = 0.5
-
-
-    print('begin ....')
-    breads = BREDS(configuration, 
-                   join(data_root,seeds_file), 
-                   join(data_root,negative_seeds), 
-                   join(data_root, sentences_file),
-                   similarity, 
-                   confidance)
-
-
-        # if sentences_file.endswith('.pkl'):
-        #     print("Loading pre-processed sentences", sentences_file)
-        #     breads.init_bootstrap(tuples=sentences_file)
-        # else:
-    breads.generate_tuples(join(data_root,sentences_file))
-    breads.init_bootstrap(tuples=None)
-
-    print('end ...')
-    

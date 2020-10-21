@@ -11,9 +11,9 @@ import pickle
 
 from nltk.corpus import stopwords
 # from Snowball.Seed import Seed
-from seed import Seed
-from reverb import Reverb
-import VectorSpaceModel
+from .seed import Seed
+from .reverb import Reverb
+from .VectorSpaceModel import VectorSpaceModel
 
 
 class Config(object):
@@ -23,13 +23,14 @@ class Config(object):
         self.negative_seed_tuples = set()
         self.e1_type = None
         self.e2_type = None
-        self.stopwords = stopwords.words('english')
+        # self.stopwords = stopwords.words('english')
+        self.stopwords = ['.','。',',']
         self.threshold_similarity = similarity
         self.instance_confidance = confidance
         # self.reverb = Reverb()
 
         for line in fileinput.input(config_file):
-            print('line ---> ', line)
+            # print('line ---> ', line)
             if line.startswith("#") or len(line) == 1:
                 continue
 
@@ -78,34 +79,34 @@ class Config(object):
         self.read_negative_seeds(negative_seeds)
         fileinput.close()
 
-        print("\nConfiguration parameters")
-        print("========================")
-        print("Relationship Representation")
-        print("e1 type              :", self.e1_type)
-        print("e2 type              :", self.e2_type)
-        print("context window       :", self.context_window_size)
-        print("max tokens away      :", self.max_tokens_away)
-        print("min tokens away      :", self.min_tokens_away)
-        print("use ReVerb           :", self.use_reverb)
+        # print("\nConfiguration parameters")
+        # print("========================")
+        # print("Relationship Representation")
+        # print("e1 type              :", self.e1_type)
+        # print("e2 type              :", self.e2_type)
+        # print("context window       :", self.context_window_size)
+        # print("max tokens away      :", self.max_tokens_away)
+        # print("min tokens away      :", self.min_tokens_away)
+        # print("use ReVerb           :", self.use_reverb)
 
-        print("\nVectors")
-        print("alpha                :", self.alpha)
-        print("beta                 :", self.beta)
-        print("gamma                :", self.gamma)
+        # print("\nVectors")
+        # print("alpha                :", self.alpha)
+        # print("beta                 :", self.beta)
+        # print("gamma                :", self.gamma)
 
-        print("\nSeeds:")
-        print("positive seeds       :", len(self.seed_tuples))
-        print("negative seeds       :", len(self.negative_seed_tuples))
-        print("negative seeds wNeg  :", self.wNeg)
-        print("unknown seeds wUnk   :", self.wUnk)
+        # print("\nSeeds:")
+        # print("positive seeds       :", len(self.seed_tuples))
+        # print("negative seeds       :", len(self.negative_seed_tuples))
+        # print("negative seeds wNeg  :", self.wNeg)
+        # print("unknown seeds wUnk   :", self.wUnk)
 
-        print("\nParameters and Thresholds")
-        print("threshold_similarity :", self.threshold_similarity)
-        print("instance confidence  :", self.instance_confidance)
-        print("min_pattern_support  :", self.min_pattern_support)
-        print("iterations           :", self.number_iterations)
-        print("iteration wUpdt      :", self.wUpdt)
-        print("\n")
+        # print("\nParameters and Thresholds")
+        # print("threshold_similarity :", self.threshold_similarity)
+        # print("instance confidence  :", self.instance_confidance)
+        # print("min_pattern_support  :", self.min_pattern_support)
+        # print("iterations           :", self.number_iterations)
+        # print("iteration wUpdt      :", self.wUpdt)
+        # print("\n")
 
         try:
             os.path.isfile("vsm.pkl")
@@ -116,7 +117,7 @@ class Config(object):
 
         except IOError:
             print("\nGenerating tf-idf model from sentences...")
-            self.vsm = VectorSpaceModel.VectorSpaceModel(sentences_file, self.stopwords)
+            self.vsm = VectorSpaceModel(sentences_file, self.stopwords)
             print("\nWriting generated model to disk...")
             f = open("vsm.pkl", "wb")
             pickle.dump(self.vsm, f)

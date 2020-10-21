@@ -63,12 +63,13 @@ def gen_train_data_by_pdf(data_root, formula_file, begin_pos=8750, key_idx=6586,
             print('已经处理{}条数据, 索引序列: {} 耗时：{:.3f}'.format(idx,key_idx,(time.time() - start_time)))
             start_time = time.time()
 
-        if (idx+1) % batch_size == 0:
+        m_lines.append(m)
 
+        if (idx + 1) % batch_size == 0:
             try:
                 # 通过PDF生成数学公式图片
                 print('m lines:', m_lines)
-                pdf.gen_latex_pdf(data_root, 'temp', m_lines)        
+                pdf.gen_latex_pdf_normal(data_root, 'temp', m_lines)        
                 # 得到PDF中公式图片位置信息
                 math_images = pdf.gen_latex_img_pos(data_root=data_root, file_name='temp',imgH=8192)         
                 print('idx :', idx, ' math images len:', len(math_images))   
@@ -86,10 +87,9 @@ def gen_train_data_by_pdf(data_root, formula_file, begin_pos=8750, key_idx=6586,
             except Exception as e:
                 print(e)
                 write_error(data_root, m_lines)
-
             m_lines = []
-        else:
-            m_lines.append(m)
+
+            
         
         # writeCache(env, {'total':str(key_idx).encode()})
     

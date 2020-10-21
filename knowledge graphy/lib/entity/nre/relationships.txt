@@ -1,0 +1,45 @@
+instance: 梯形	直角梯形	score:0.4815386042860096
+sentence: <NKN>梯形</NKN>包含：<NKN>直角梯形</NKN>，<NKN>等腰梯形</NKN>).
+pattern_bet: 包含：, 包含
+passive voice: False
+
+instance: 四边形	平行四边形	score:0.3538650237364652
+sentence: <NKN>四边形</NKN>包含<NKN>平行四边形</NKN>.
+pattern_bet: 包含：, 包含
+passive voice: False
+
+instance: 梯形	直角梯形	score:0.31329746677700726
+sentence: <NKN>梯形</NKN>(包括：<NKN>直角梯形</NKN>，<NKN>等腰梯形</NKN>).
+pattern_bet: 包括，, (包括：
+passive voice: False
+
+instance: 四边形	平行四边形	score:0.31329746677700726
+sentence: <NKN>四边形</NKN>包括，<NKN>平行四边形</NKN>，<NKN>梯形</NKN>
+pattern_bet: 包括，, (包括：
+passive voice: False
+
+instance: 四边形	平行四边形	score:0.30348204486006825
+sentence: <NKN>四边形</NKN>可以是<NKN>平行四边形</NKN>.
+pattern_bet: 可以, 可以是
+passive voice: False
+
+instance: 四边形	等腰梯形	score:0.30348204486006825
+sentence: <NKN>四边形</NKN>可以是<NKN>等腰梯形</NKN>.
+pattern_bet: 可以, 可以是
+passive voice: False
+
+instance: 梯形	直角梯形	score:0.30348204486006825
+sentence: <NKN>梯形</NKN>可以是<NKN>直角梯形</NKN>.
+pattern_bet: 可以, 可以是
+passive voice: False
+
+instance: 正方形	长方形	score:0.30348204486006825
+sentence: <NKN>正方形</NKN>可以是<NKN>长方形</NKN>
+pattern_bet: 可以, 可以是
+passive voice: False
+
+instance: 四边形	平行四边形	score:0.2842990695166878
+sentence: <NKN>四边形</NKN>可以<NKN>平行四边形</NKN>.
+pattern_bet: 可以, 可以是
+passive voice: False
+

@@ -196,6 +196,7 @@ class RandomBackGround(object):
 
     def __load__bg_img__(self):
         _file_list = os.listdir(join(self.data_root, 'bgimg'))
+        print('bg img lists :', _file_list)
         img_lists = []
         for item in _file_list:
             image = cv2.imread(join(self.data_root, 'bgimg', item), cv2.IMREAD_COLOR)
@@ -222,22 +223,24 @@ class RandomBackGround(object):
         bg_clip_height = int(bg_height*height_radio)
         bg_clip_width = int(bg_width*width_radio)
         if bg_clip_height > bg_height and bg_clip_width > bg_clip_width:
-            bg_clip_x_pos = np.random.randint(0, bg_width - bg_clip_width)
-            bg_clip_y_pos = np.random.randint(0, bg_height - bg_clip_height)
+            bg_clip_x_pos =   np.random.randint(0, bg_width - bg_clip_width)
+            bg_clip_y_pos =   np.random.randint(0, bg_height - bg_clip_height)
             _bg_img = bg_img[bg_clip_y_pos:bg_clip_y_pos+bg_clip_height, bg_clip_x_pos:bg_clip_x_pos+bg_clip_width,:]
         else:
             _bg_img = cv2.resize(bg_img.copy(),(0,0), fx=width_radio, fy=height_radio, interpolation=cv2.INTER_AREA)
 
         bg_height, bg_width, _ = _bg_img.shape
-        x_pos  = np.random.randint(0, bg_width - image.shape[1])
-        y_pos  = np.random.randint(0, bg_height - image.shape[0])
+        x_pos  = (bg_width - image.shape[1]) // 2 #np.random.randint(0, bg_width - image.shape[1])
+        y_pos  = (bg_height - image.shape[0]) // 2 #np.random.randint(0, bg_height - image.shape[0])
         # print('xpos :', x_pos, ' ypos:', y_pos)
         mix_image = np.ones(_bg_img.shape, _bg_img.dtype) * 255
         mix_image[y_pos:y_pos+height, x_pos:x_pos+width,:] = image        
 
         alpha_min = self.alpha_min
 
-        alpha_1 = np.random.uniform(alpha_min, 0.8)
+        alpha_1 = np.random.uniform(alpha_min, 0.91)
+        # mix_image = cv2.addWeighted(mix_image, alpha_1, _bg_img, 1-alpha_1, 0)
+        # alpha_1 = 0.9
         mix_image = cv2.addWeighted(mix_image, alpha_1, _bg_img, 1-alpha_1, 0)
 
         # _bg_img[y_pos:y_pos + height, x_pos: x_pos + width, ] = _img
@@ -248,6 +251,7 @@ class RandomBackGround(object):
     def __call__(self, image, labels):
         if self.bg_img_lists is None:
             self.bg_img_lists = self.__load__bg_img__()
+
 
         if len(self.bg_img_lists) == 0:
             return image, labels

@@ -10,7 +10,7 @@ from nltk import pos_tag
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag.mapping import map_tag
 import nltk
-from sentence import Sentence
+from .sentence import Sentence
 
 
 class Reverb(object):
