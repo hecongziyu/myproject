@@ -1,0 +1,1 @@
+python  -c "from models import *; convert('cfg/yolo-fastest.cfg', r'D:\PROJECT_TW\git\data\qrdetect\ckpts\yolo3_tiny_best.pth')"

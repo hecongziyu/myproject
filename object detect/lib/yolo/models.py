@@ -138,7 +138,7 @@ def create_modules(module_defs, img_size, cfg):
         module_list.append(modules)
         output_filters.append(filters)
 
-    print('out filter :', output_filters)
+    # print('out filter :', output_filters)
 
     routs_binary = [False] * (i + 1)
     for i in routs:
@@ -159,6 +159,9 @@ class YOLOLayer(nn.Module):
         self.no = nc + 5  # number of outputs (85)
         self.nx, self.ny, self.ng = 0, 0, 0  # initialize number of x, y gridpoints
         self.anchor_vec = self.anchors / self.stride
+
+        # print('yolo idx %s anchors %s stride %s' % (yolo_index, self.anchors, self.stride))
+
         self.anchor_wh = self.anchor_vec.view(1, self.na, 1, 1, 2)
 
         if ONNX_EXPORT:
@@ -209,7 +212,7 @@ class YOLOLayer(nn.Module):
                 self.create_grids((nx, ny), p.device)
 
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
-        # na: number of anchors (3), no: number of outputs (85), ny:ny: grid
+        # na: number of anchors (3), no: class number + 5, ny:ny: grid
         p = p.view(bs, self.na, self.no, self.ny, self.nx).permute(0, 1, 3, 4, 2).contiguous()  # prediction
 
         if self.training:
@@ -232,13 +235,16 @@ class YOLOLayer(nn.Module):
         else:  # inference
             # https://www.cnblogs.com/double-t/p/11067950.html  3个点的使用
             io = p.clone()  # inference output
-            # print('io shape :::', io.size())   torch.Size([1, 3, 26, 26, 6])   # 6 --> x,y,w,h,iou,cls
+            # print('io shape :::', io.size())   #torch.Size([1, 3, 26, 26, 6])   # 6 --> x,y,w,h,iou,cls
             # io[..., :2] 表示遍历每行，:2表示索引为<2的0，1所在的列
             # classes + xywh 
+            # print('test : \ngrid --> \n%s \nanchros wh --> \n%s \n stride --> \n%s \n end' % (self.grid, self.anchor_wh, self.stride))
             io[..., :2] = torch.sigmoid(io[..., :2]) + self.grid  # x y 位置, 相应偏移量 sigmoid --> 1 / 1 + exp(-input)
             io[..., 2:4] = torch.exp(io[..., 2:4]) * self.anchor_wh  # wh yolo method
             io[..., :4] *= self.stride  #  layer stride   iou
+            # print(io[...,4:])
             torch.sigmoid_(io[..., 4:])  #  cls 
+            # print('io after shape :::', io.view(bs,-1,self.no).size()) 
             return io.view(bs, -1, self.no), p  # view [1, 3, 13, 13, 85] as [1, 507, 85]
 
 
@@ -452,7 +458,7 @@ def convert(cfg='cfg/yolov3-spp.cfg', weights='weights/yolov3-spp.weights'):
     model = Darknet(cfg)
 
     # Load weights and save
-    if weights.endswith('.pt'):  # if PyTorch format
+    if weights.endswith('.pth'):  # if PyTorch format
         model.load_state_dict(torch.load(weights, map_location='cpu')['model'])
         target = weights.rsplit('.', 1)[0] + '.weights'
         save_weights(model, path=target, cutoff=-1)

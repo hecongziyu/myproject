@@ -59,12 +59,13 @@ def test(cfg,
     with torch.no_grad():
         # inf_out, train_out = model(torch.zeros((1, 3, imgsz, imgsz), device=device), verbose=True) 
         start_time = time.time()
+        
         inf_out, train_out = model(image, verbose=True)
         print('use time :', (time.time() - start_time))
         print('inf out size :', inf_out.size())
         print('train out size :', train_out[0].size(), train_out[1].size())
 
-    print('out class :', inf_out[0].shape[1])
+    print('out class :', inf_out.size())
     output = non_max_suppression(inf_out, conf_thres=conf_thres, iou_thres=iou_thres, multi_label=multi_label)
     # output = np.array(output[0])
     # print('out put:', output.shape)
@@ -90,7 +91,7 @@ def test(cfg,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--cfg', type=str, default='cfg/yolov3-tiny.cfg', help='*.cfg path')
+    parser.add_argument('--cfg', type=str, default='cfg/yolov3-tiny-old.cfg', help='*.cfg path')
     parser.add_argument('--data', type=str, default='data/coco2014.data', help='*.data path')
     parser.add_argument('--weights', type=str, default=r'D:\PROJECT_TW\git\data\qrdetect\weights\yolov3-tiny.pt', help='weights path')
     parser.add_argument('--batch-size', type=int, default=16, help='size of each image batch')

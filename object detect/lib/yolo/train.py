@@ -5,6 +5,9 @@ from models import *
 from utils.datasets import *
 from utils.utils import *
 import logging
+from data.qrtransform import QRTransform
+from data.qrdataset import QRDataset,collate_fn,AnnotationTransform
+from os.path import join
 
 
 
@@ -47,6 +50,8 @@ def train(opt, hyp):
     weights = opt.weights  # initial training weights
     imgsz_min, imgsz_max, imgsz_test = opt.img_size  # img sizes (min, max, test)
     device = torch_utils.select_device(opt.device, apex=mixed_precision, batch_size=opt.batch_size)
+
+    logger.info('train device : %s' % device)
 
     gs = 32  # (pixels) grid size
     assert math.fmod(imgsz_min, gs) == 0, '--img-size %g must be a %g-multiple' % (imgsz_min, gs)
@@ -94,13 +99,21 @@ def train(opt, hyp):
 
     # Scheduler https://arxiv.org/pdf/1812.01187.pdf
     lf = lambda x: (((1 + math.cos(x * math.pi / epochs)) / 2) ** 1.0) * 0.95 + 0.05  # cosine
+    # print('lf :', lf)
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
     scheduler.last_epoch = start_epoch - 1  # see link below
     # https://discuss.pytorch.org/t/a-problem-occured-when-resuming-an-optimizer/28822
 
+    dataset = QRDataset(data_dir=opt.data_root,
+                        window=416, transform=QRTransform(window=416), target_transform=AnnotationTransform())    
+
+    dataloader = torch.utils.data.DataLoader(dataset,
+                                             batch_size=16,
+                                             shuffle=True,  # Shuffle=True unless rectangular training is used
+                                             pin_memory=False,
+                                             collate_fn=collate_fn)   
 
 
-    dataloader = None
 
     # Model parameters
     model.nc = nc  # attach number of classes to model
@@ -115,27 +128,31 @@ def train(opt, hyp):
 
     # Start training
     n_batch = len(dataloader)  # number of batches
+    logger.info('number of batches %s ' % n_batch)
     n_burn = max(3 * n_batch, 500)  # burn-in iterations, max(3 epochs, 500 iterations)
     maps = np.zeros(nc)  # mAP per class
 
     logger.info('Image sizes %g - %g train, %g test' % (imgsz_min, imgsz_max, imgsz_test))
     logger.info('Starting training for %g epochs...' % epochs)
 
+    best_val_loss = 10
+
     for epoch in range(start_epoch, epochs):  
         model.train()
 
         # Update image weights (optional) 增加参与训练数据类别，防止类别数据少的数据没有参与训练 ?
-        if dataset.image_weights:
-            w = model.class_weights.cpu().numpy() * (1 - maps) ** 2  # class weights
-            image_weights = labels_to_image_weights(dataset.labels, nc=nc, class_weights=w)
-            dataset.indices = random.choices(range(dataset.n), weights=image_weights, k=dataset.n)  # rand weighted idx
+        # if dataset.image_weights:
+        #     w = model.class_weights.cpu().numpy() * (1 - maps) ** 2  # class weights
+        #     image_weights = labels_to_image_weights(dataset.labels, nc=nc, class_weights=w)
+        #     dataset.indices = random.choices(range(dataset.n), weights=image_weights, k=dataset.n)  # rand weighted idx
 
 
-        for i, (imgs, targets, paths, _) in enumerate(dataloader):
+        for i, (imgs, targets) in enumerate(dataloader):
             ni = i + n_batch * epoch  # number integrated batches (since train start)
+
             imgs = imgs.to(device).float() / 255.0  # uint8 to float32, 0 - 255 to 0.0 - 1.0
             targets = targets.to(device)
-
+            # print('targets :', targets)
 
             # Burn-in
             if ni <= n_burn:
@@ -155,11 +172,14 @@ def train(opt, hyp):
             # Loss
             loss, loss_items = compute_loss(pred, targets, model)
             if not torch.isfinite(loss):
-                print('WARNING: non-finite loss, ending training ', loss_items)
+                logger.info('WARNING: non-finite loss, ending training  %s' % loss_items)
                 return results
 
             # Backward
             loss *= batch_size / 64  # scale loss
+
+            logger.info('epoch: %s idx %s, loss %s, loss detail %s' % (epoch, i, loss.item(), loss_items))
+
             loss.backward()
 
             # Optimize
@@ -169,11 +189,24 @@ def train(opt, hyp):
                 ema.update(model)
 
 
+            if loss.item() < best_val_loss:
+                ckpt = {'epoch': epoch,
+                         'best_fitness': best_fitness,
+                         # 'training_results': f.read(),
+                         'model': ema.ema.module.state_dict() if hasattr(model, 'module') else ema.ema.state_dict(),
+                         'optimizer':optimizer.state_dict()}
+
+                best_val_loss = loss.item()    
+                logger.info('save model , best val loss : %s' % best_val_loss)            
+                torch.save(ckpt, join(opt.data_root, 'ckpts','yolo3_tiny_best.pth'))
+
+
         # Update scheduler
         scheduler.step()
 
         # Process epoch results
         ema.update_attr(model)
+
 
     torch.cuda.empty_cache()
 
@@ -181,9 +214,10 @@ def train(opt, hyp):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', type=int, default=300)  # 500200 batches at bs 16, 117263 COCO images = 273 epochs
+    parser.add_argument('--epochs', type=int, default=50000)  # 500200 batches at bs 16, 117263 COCO images = 273 epochs
     parser.add_argument('--batch-size', type=int, default=16)  # effective bs = batch_size * accumulate = 16 * 4 = 64
-    parser.add_argument('--cfg', type=str, default='cfg/yolov3-tiny.cfg', help='*.cfg path')
+    parser.add_argument('--cfg', type=str, default='cfg/yolo-fastest.cfg', help='*.cfg path')
+    parser.add_argument('--data_root',default='D:\\PROJECT_TW\\git\\data\\qrdetect', type=str, help='path of the math formula data')
     # parser.add_argument('--data', type=str, default='data/coco2017.data', help='*.data path')
     parser.add_argument('--multi-scale', action='store_true', help='adjust (67%% - 150%%) img_size every 10 batches')
     parser.add_argument('--img-size', nargs='+', type=int, default=[320, 640], help='[min_train, max-train, test]')
@@ -197,8 +231,8 @@ if __name__ == '__main__':
     parser.add_argument('--weights', type=str, default='weights/yolov3-spp-ultralytics.pt', help='initial weights path')
     parser.add_argument('--name', default='', help='renames results.txt to results_name.txt if supplied')
     parser.add_argument('--device', default='', help='device id (i.e. 0 or 0,1 or cpu)')
-    parser.add_argument('--adam', action='store_true', help='use adam optimizer')
-    parser.add_argument('--single-cls', action='store_true', help='train as single-class dataset')
+    parser.add_argument('--adam',default=True, action='store_true', help='use adam optimizer')
+    parser.add_argument('--single-cls',default=True, action='store_true', help='train as single-class dataset')
     parser.add_argument('--freeze-layers', action='store_true', help='Freeze non-output layers')  
     opt = parser.parse_args()
 
