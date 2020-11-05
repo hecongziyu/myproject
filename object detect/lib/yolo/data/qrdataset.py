@@ -274,7 +274,7 @@ if __name__ == '__main__':
                         window=416, transform=QRTransform(window=416), target_transform=AnnotationTransform())    
 
     print('data set len :', len(dataset))
-    random_sel = np.random.randint(0, len(dataset), 500).tolist()
+    random_sel = np.random.randint(0, len(dataset), 2000).tolist()
 
     # len(dataset)-50,
     for ridx, idx in enumerate(random_sel):

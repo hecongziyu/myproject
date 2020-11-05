@@ -1,0 +1,23 @@
+一、说明
+	online education 评估系统, 检测学生知识掌握程度，预测学生next question answer correct probability
+	
+		P(L0),theprior probability that a student has mastered a KC;P(S),theprobabilitya student who knows a 
+	concept will get an associated question wrong, or’slip’;P(G), the probability that a student who does not 
+	know a concept willcorrectly ’guess’ the correct answer; and P(T)the probability that a student who does not 
+	know a particular KC will learn it after a given observation.
+	
+	input feature:
+		答题历史记录 question 知识点,  correct,  answer time
+		掌握知识点答对概率表 ()
+		没有掌握知识点猜中概率表 （）
+		
+		
+	output:
+		问题难度分级
+		学生知识点掌握程度概率
+	
+二、模型说明 
+
+1、HMM模型
+	
+		

@@ -85,12 +85,12 @@ def valid_image_dataset(model, opt):
 
 
 def valid_image_file(model, opt, file_name=None, imgsz=416):
-    conf_thres=0.1
+    conf_thres=0.01
     iou_thres=0.5  # for nms
     multi_label=False
     device = 'cpu'
     Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
-    image = cv2.imread(r'D:\PROJECT_TW\git\data\qrdetect\error_imgs\taged\0317cc13-d4ad-4b9e-b05d-a429448f46a5.jpg',cv2.IMREAD_COLOR)
+    image = cv2.imread(r'D:\PROJECT_TW\git\data\qrdetect\images\real\source\00d78ebc-24ff-42b0-ab46-2250401530b7.jpg',cv2.IMREAD_COLOR)
     image = mask_image(image)
     image = image.astype(np.uint8)
 
@@ -175,7 +175,7 @@ def valid_opencv(opt):
     net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
     net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
-    image = cv2.imread(r'D:\PROJECT_TW\git\data\qrdetect\error_imgs\taged\300672b2-a6e1-4353-a4a2-55577de81930.jpg',cv2.IMREAD_COLOR)
+    image = cv2.imread(r'D:\PROJECT_TW\git\data\qrdetect\images\real\source\00d78ebc-24ff-42b0-ab46-2250401530b7.jpg',cv2.IMREAD_COLOR)
     image = mask_image(image)
     src_img = image.copy()
     image = image.astype(np.uint8)
@@ -187,13 +187,19 @@ def valid_opencv(opt):
 
     blob = cv2.dnn.blobFromImage(image, 1/255.0, (416, 416), [0, 0, 0], swapRB=False, crop=False)
     net.setInput(blob)
+    print('getOutputsNames(net):', getOutputsNames(net))
     outputs = net.forward(getOutputsNames(net))
+
+    print('outputs shape :', len(outputs))
+
     # print('type inf output :', type(inf_out), inf_out.shape)
     # print('type train out :', type(train_out), train_out.shape)
     confidences = []
     boxes = []
 
     for layers in outputs:
+        print('layers shape:', layers.shape)
+
         for detect in layers:
             score = detect[4]
             # print('score :', score)
@@ -264,7 +270,7 @@ if __name__ == '__main__':
     # model = get_model(opt)
 
     # valid_image_dataset(model, opt)
-
+# 
     # valid_image_file(model,opt)
 
     valid_opencv(opt)
