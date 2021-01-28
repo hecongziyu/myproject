@@ -208,11 +208,11 @@ def gen_real_qr_image(data_dir):
 # 错误识别图形手工处理预处理部分，将错误识别原图复制到对应目录里面准备手工处理
 def pre_handle_error(data_dir):
     e_file_lists = os.listdir(os.path.join(data_dir, 'error_imgs', 'error'))
-
+    print('e file lists :', e_file_lists)
     # 检测该图片是否已在训练数据中
     for eitem in e_file_lists:
         # eitem = eitem.rsplit('.',1)[0]
-        eitem = eitem.replace('.png','')
+        # eitem = eitem.replace('.png','')
 
         if os.path.exists(join(data_dir, 'result', eitem)) or os.path.exists(join(data_dir, 'error_imgs', 'taged', eitem)):
             print('文件已在训练数据中, ', eitem)
